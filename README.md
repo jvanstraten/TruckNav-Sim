@@ -33,7 +33,7 @@ While the core navigation works, the project is far from perfect. Creating the r
 >
 > Please note that performance optimization is still a work in progress. Depending on your device (especially older tablets or phones), the map rendering might be slow or laggy. I am working on improving this!
 
-## Installation via .exe File
+# Installation via .exe File
 
 1. Download the latest setup file from the
   [Releases](https://github.com/Rares-Muntean/ets2-navigation-gps/releases) page.
@@ -46,7 +46,7 @@ While the core navigation works, the project is far from perfect. Creating the r
 
 5. Open the mobile app and enter the IP address displayed in the PC application.
 
-## Instalation via nodejs
+# Instalation via nodejs
 
 ## Prerequisites
 
@@ -66,7 +66,7 @@ You can either clone the repository using Git (recommended for easy updates) or 
 Open your terminal or command prompt and run:
 ```bash
 git clone https://github.com/Rares-Muntean/ets2-navigation-gps.git
-cd ts2-navigation-gps
+cd ets2-navigation-gps
 ```
 **Option B: Download ZIP**
 1. Click the Code button at the top of this page and select `Download ZIP`.
