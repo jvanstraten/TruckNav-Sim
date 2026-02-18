@@ -1,8 +1,8 @@
 <script lang="ts" setup>
 import { darkenColor } from "~/assets/utils/colors";
-import { AppSettings } from "~~/shared/constants/appSettings";
 
 defineProps<{ progress: number }>();
+const { settings } = useSettings();
 </script>
 
 <template>
@@ -10,7 +10,7 @@ defineProps<{ progress: number }>();
         <div
             class="progress-text"
             :style="{
-                color: darkenColor(AppSettings.theme.defaultColor, 0.2),
+                color: darkenColor(settings.themeColor, 0.2),
             }"
         >
             {{ progress }}%
@@ -20,10 +20,7 @@ defineProps<{ progress: number }>();
                 class="progress-bar-fill"
                 :style="{
                     width: progress + '%',
-                    backgroundColor: darkenColor(
-                        AppSettings.theme.defaultColor,
-                        0.2,
-                    ),
+                    backgroundColor: darkenColor(settings.themeColor, 0.2),
                 }"
             ></div>
         </div>

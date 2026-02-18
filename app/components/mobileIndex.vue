@@ -1,8 +1,7 @@
 <script lang="ts" setup>
 import { CapacitorHttp } from "@capacitor/core";
-import { AppSettings } from "~~/shared/constants/appSettings";
 
-const { saveIP, loadIP } = useSettings();
+const { saveIP, loadIP } = usePcConnection();
 
 const ipInput = ref("");
 const isConnecting = ref(false);
@@ -66,10 +65,7 @@ const handleConnect = async () => {
 </script>
 
 <template>
-    <section
-        :style="{ '--theme-color': AppSettings.theme.defaultColor }"
-        class="section-mobile-menu"
-    >
+    <section class="section-mobile-menu">
         <div class="title">
             <Icon
                 class="icon"

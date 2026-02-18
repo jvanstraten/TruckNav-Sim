@@ -6,7 +6,7 @@ import { convertTelemtryTime } from "~/assets/utils/helpers";
 import { Capacitor, CapacitorHttp } from "@capacitor/core";
 
 const { isElectron, isMobile, isWeb } = usePlatform();
-const { savedIP } = useSettings();
+const { savedIP } = usePcConnection();
 
 export interface TelemetryUpdate {
     truck: TruckState;
@@ -92,14 +92,14 @@ export function useEtsTelemetry() {
     function getCorrectHeading(
         rawGameHeading: number,
         truckSpeed: number,
-        currentCoords: [number, number]
+        currentCoords: [number, number],
     ) {
         const rawDegrees = -rawGameHeading * 360;
 
         if (lastPosition && truckSpeed > 10) {
             const dist = Math.sqrt(
                 Math.pow(currentCoords[0] - lastPosition[0], 2) +
-                    Math.pow(currentCoords[1] - lastPosition[1], 2)
+                    Math.pow(currentCoords[1] - lastPosition[1], 2),
             );
 
             if (dist > 0.00005) {
@@ -160,7 +160,7 @@ export function useEtsTelemetry() {
                     abortController = new AbortController();
                     const timeoutId = setTimeout(
                         () => abortController?.abort(),
-                        1000
+                        1000,
                     );
 
                     const response = await fetch("/api/ets2", {
@@ -217,7 +217,7 @@ export function useEtsTelemetry() {
     }
 
     function resetDataOnDisconnected(
-        onUpdate?: (data: TelemetryUpdate) => void
+        onUpdate?: (data: TelemetryUpdate) => void,
     ) {
         const wasConnected = gameState.gameConnected;
 
@@ -262,7 +262,7 @@ export function useEtsTelemetry() {
 
     function processData(
         data: TelemetryData,
-        onUpdate?: (data: TelemetryUpdate) => void
+        onUpdate?: (data: TelemetryUpdate) => void,
     ) {
         // Truck Placement
 
@@ -272,7 +272,7 @@ export function useEtsTelemetry() {
             data.navigation.estimatedDistance > 100 && data.job.income === 0;
 
         const { formatted: formattedTime, raw } = convertTelemtryTime(
-            data.game.time
+            data.game.time,
         );
         const day = raw.toUTCString().slice(0, 3);
         const gameTime = `${day} ${formattedTime}`;
@@ -285,14 +285,14 @@ export function useEtsTelemetry() {
         const truckHeading = getCorrectHeading(
             rawGameHeading,
             truckSpeed,
-            truckCoords
+            truckCoords,
         );
 
         // GENERAL INFO
         const fuel = parseInt(data.truck.fuel.toFixed(1));
         const speedLimit = data.navigation.speedLimit;
         const { formatted: restStoptime, raw: restRaw } = convertTelemtryTime(
-            data.game.nextRestStopTime
+            data.game.nextRestStopTime,
         );
         const restStopMinutes =
             restRaw.getUTCHours() * 60 + restRaw.getUTCMinutes();

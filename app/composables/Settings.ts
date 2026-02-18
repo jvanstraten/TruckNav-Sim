@@ -1,25 +1,62 @@
-import { Preferences } from "@capacitor/preferences";
+import { AppSettings } from "~~/shared/constants/appSettings";
+
+export interface AppSettingsState {
+    themeColor: string;
+    routeColor: string;
+}
+
+const DEFAULT_SETTINGS: AppSettingsState = {
+    themeColor: AppSettings.theme.defaultColor,
+    routeColor: "#22d3ee",
+};
+
+const STORAGE_KEY = "truck-nav-settings";
 
 export const useSettings = () => {
-    const savedIP = ref<string | null>(null);
+    const settings = useState<AppSettingsState>("app-settings", () => ({
+        ...DEFAULT_SETTINGS,
+    }));
 
-    const saveIP = async (ip: string) => {
-        await Preferences.set({ key: "pc_ip", value: ip });
-        savedIP.value = ip;
+    const applySideEffects = () => {
+        document.documentElement.style.setProperty(
+            "--theme-color",
+            settings.value.themeColor,
+        );
     };
 
-    const loadIP = async () => {
-        const { value } = await Preferences.get({ key: "pc_ip" });
-        savedIP.value = value;
-        return value;
+    const saveSettings = () => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(settings.value));
+        applySideEffects();
     };
 
-    loadIP();
-
-    const clearIP = async () => {
-        await Preferences.remove({ key: "pc_ip" });
-        savedIP.value = null;
+    const updateSettings = <K extends keyof AppSettingsState>(
+        key: K,
+        value: AppSettingsState[K],
+    ) => {
+        settings.value[key] = value;
+        saveSettings();
     };
 
-    return { savedIP, saveIP, loadIP, clearIP };
+    const initSettings = () => {
+        const savedString = localStorage.getItem(STORAGE_KEY);
+
+        if (savedString) {
+            try {
+                const parsed = JSON.parse(savedString);
+                settings.value = { ...DEFAULT_SETTINGS, ...parsed };
+            } catch (e) {
+                console.error("Corrupt settings found, resetting to defaults.");
+                settings.value = { ...DEFAULT_SETTINGS };
+            }
+        } else {
+            settings.value = { ...DEFAULT_SETTINGS };
+        }
+    };
+
+    const resetSettings = () => {
+        settings.value = { ...DEFAULT_SETTINGS };
+        saveSettings();
+    };
+
+    return { settings, updateSettings, initSettings };
 };

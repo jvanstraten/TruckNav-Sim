@@ -4,6 +4,7 @@ import { AppSettings } from "~~/shared/constants/appSettings";
 
 const gradientId = `truck-gradient-${Math.random().toString(36).slice(2, 9)}`;
 
+const { settings } = useSettings();
 const markerElement = ref<HTMLElement | null>(null);
 defineExpose({ markerElement });
 defineProps<{ isCameraLocked: boolean }>();
@@ -11,7 +12,7 @@ defineProps<{ isCameraLocked: boolean }>();
 const updateMarkerColors = () => {
     if (!markerElement.value) return;
 
-    const base = AppSettings.theme.defaultColor;
+    const base = settings.value.themeColor;
 
     markerElement.value.style.setProperty(
         "--truck-dark",
@@ -24,7 +25,7 @@ const updateMarkerColors = () => {
 };
 
 watch(
-    () => AppSettings.theme.defaultColor,
+    () => settings.value.themeColor,
     () => {
         updateMarkerColors();
     },

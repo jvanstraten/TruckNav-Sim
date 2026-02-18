@@ -24,6 +24,7 @@
         "eruda": "^3.4.3",
         "maplibre-gl": "^5.14.0",
         "nuxt": "^4.2.2",
+        "nuxt-color-picker": "^1.2.8",
         "pmtiles": "^4.3.0",
         "proj4": "^2.20.2",
         "rbush": "^4.0.1",

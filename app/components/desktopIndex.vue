@@ -1,6 +1,4 @@
 <script lang="ts" setup>
-import { AppSettings } from "~~/shared/constants/appSettings";
-
 const { fetchIp, localIP } = useNetwork();
 const isServerRunning = ref(false);
 const polling = ref<any>(null);
@@ -65,10 +63,7 @@ const openLink = async (url: string) => {
 </script>
 
 <template>
-    <section
-        :style="{ '--theme-color': AppSettings.theme.defaultColor }"
-        class="section-device-info"
-    >
+    <section class="section-device-info">
         <div class="top-tagline">
             <Icon name="whh:gpsalt" class="icon" size="16" />
             <span>Your Trucking Companion</span>

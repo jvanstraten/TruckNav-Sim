@@ -1,6 +1,4 @@
 <script lang="ts" setup>
-import { AppSettings } from "~~/shared/constants/appSettings";
-
 const props = defineProps<{
     isSheetExpanded: boolean;
     isSheetHidden: boolean;
@@ -32,9 +30,6 @@ function onToggleSheet() {
     <div
         class="bottom-sheet"
         :class="{ 'is-expanded': isSheetExpanded, 'is-hidden': isSheetHidden }"
-        :style="{
-            '--theme-color': AppSettings.theme.defaultColor,
-        }"
     >
         <div class="sheet-header" @click="onToggleSheet">
             <div class="drag-pill"></div>
@@ -65,7 +60,6 @@ function onToggleSheet() {
                     v-if="isSheetHidden"
                     v-on:click="onToggleSheetHidden"
                     class="compact-trip-progress"
-                    :style="{ '--theme-color': AppSettings.theme.defaultColor }"
                 >
                     <Icon name="lets-icons:road-finish-fill" size="22" />
                     <div class="right">

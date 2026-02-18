@@ -6,7 +6,6 @@ import {
     DEVIATION_THRESHOLD_SQ,
     getSquaredDist,
 } from "~/assets/utils/geographicMath";
-import { AppSettings } from "~~/shared/constants/appSettings";
 
 export const useRouteController = (
     map: Ref<maplibregl.Map | null>,
@@ -15,6 +14,7 @@ export const useRouteController = (
 ) => {
     const { getGameLocationName, getWorkerCityData } = useCityData();
     const { getClosestNodes } = useGraphSystem();
+    const { settings } = useSettings();
 
     const currentRoutePath = shallowRef<[number, number][] | null>(null);
     const routeStatsCache = shallowRef<Float32Array | null>(null);
@@ -38,7 +38,7 @@ export const useRouteController = (
     const currentRouteIndex = ref(0);
 
     watch(
-        () => AppSettings.theme.defaultColor,
+        () => settings.value.themeColor,
         (newColor) => {
             if (endMarker.value) {
                 const element = endMarker.value.getElement();
@@ -47,6 +47,19 @@ export const useRouteController = (
                 svgPaths.forEach((path) => {
                     path.setAttribute("fill", newColor);
                 });
+            }
+        },
+    );
+
+    watch(
+        () => settings.value.routeColor,
+        (newColor) => {
+            if (map.value && map.value.getLayer("route-line")) {
+                map.value.setPaintProperty(
+                    "route-line",
+                    "line-color",
+                    newColor,
+                );
             }
         },
     );
@@ -253,7 +266,7 @@ export const useRouteController = (
         const rawMap = toRaw(map.value);
 
         const source = rawMap.getSource(
-            "debug-route",
+            "route-line",
         ) as maplibregl.GeoJSONSource;
 
         source.setData({
@@ -276,7 +289,7 @@ export const useRouteController = (
         if (!endLocation || !map.value) return;
 
         const marker = new maplibregl.Marker({
-            color: AppSettings.theme.defaultColor,
+            color: settings.value.themeColor,
         })
             .setLngLat(endLocation)
             .addTo(map.value);
@@ -295,21 +308,21 @@ export const useRouteController = (
 
     function setupRouteLayer() {
         if (!map.value) return;
-        if (map.value.getSource("debug-route")) return;
+        if (map.value.getSource("route-line")) return;
 
-        map.value.addSource("debug-route", {
+        map.value.addSource("route-line", {
             type: "geojson",
             data: { type: "FeatureCollection", features: [] },
         });
 
         map.value.addLayer(
             {
-                id: "debug-route-line",
+                id: "route-line",
                 type: "line",
-                source: "debug-route",
+                source: "route-line",
                 layout: { "line-join": "round", "line-cap": "round" },
                 paint: {
-                    "line-color": "#22d3ee",
+                    "line-color": settings.value.routeColor,
                     "line-width": [
                         "interpolate",
                         ["linear"],
@@ -495,7 +508,7 @@ export const useRouteController = (
     function clearRouteState() {
         if (!map.value) return;
         const source = map.value.getSource(
-            "debug-route",
+            "route-line",
         ) as maplibregl.GeoJSONSource;
 
         if (source) {

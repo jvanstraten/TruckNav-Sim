@@ -1,4 +1,9 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+onMounted(() => {
+    const { initSettings } = useSettings();
+    initSettings();
+});
+</script>
 
 <template>
     <NuxtPage />
