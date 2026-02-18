@@ -31,7 +31,7 @@ export function useGraphSystem() {
     function getClosestNodes(
         target: [number, number],
         limit = 5,
-        radiusDeg = 0.02
+        radiusDeg = 0.02,
     ): number[] {
         const radius = radiusDeg;
 

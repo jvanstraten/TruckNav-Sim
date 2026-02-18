@@ -11,7 +11,7 @@ import { AppSettings } from "~~/shared/variables/appSettings";
 export const useRouteController = (
     map: Ref<maplibregl.Map | null>,
     adjacency: Map<number, { to: number; weight: number; r: number }[]>,
-    nodeCoords: Map<number, [number, number]>
+    nodeCoords: Map<number, [number, number]>,
 ) => {
     const { getGameLocationName, getWorkerCityData } = useCityData();
     const { getClosestNodes } = useGraphSystem();
@@ -42,7 +42,7 @@ export const useRouteController = (
     if (import.meta.client) {
         worker = new Worker(
             new URL("~/assets/workers/route.worker.ts", import.meta.url),
-            { type: "module" }
+            { type: "module" },
         );
 
         worker.onmessage = (e) => {
@@ -71,7 +71,7 @@ export const useRouteController = (
         heading: number,
         startType: string,
         targetCoords: [number, number],
-        projectedStartCoords: [number, number]
+        projectedStartCoords: [number, number],
     ): Promise<any> {
         return new Promise((resolve) => {
             if (!worker) {
@@ -105,7 +105,7 @@ export const useRouteController = (
     function findBestStartConfiguration(
         truckCoords: [number, number],
         truckHeading: number,
-        _ignoredLimit: number = 20
+        _ignoredLimit: number = 20,
     ) {
         const truckPt = point(truckCoords);
         const normalizedTruckHeading = ((truckHeading % 360) + 360) % 360;
@@ -120,7 +120,7 @@ export const useRouteController = (
         if (nearbyNodes.length === 0) {
             console.error(
                 "CRITICAL: Quadtree returned 0 nodes near truck.",
-                truckCoords
+                truckCoords,
             );
             return null;
         }
@@ -159,7 +159,7 @@ export const useRouteController = (
                         toId: edge.to,
                         projectedCoords: snapped.geometry.coordinates as [
                             number,
-                            number
+                            number,
                         ],
                     };
                 }
@@ -207,7 +207,7 @@ export const useRouteController = (
         targetCoords: [number, number],
         truckHeading: number,
         startType: "road" | "yard",
-        projectedStartCoords: [number, number]
+        projectedStartCoords: [number, number],
     ) {
         const SEARCH_RADII = [1, 2, 4, 8, 16, 32, 100, 300];
 
@@ -222,7 +222,7 @@ export const useRouteController = (
                 truckHeading,
                 startType,
                 targetCoords,
-                projectedStartCoords
+                projectedStartCoords,
             );
 
             if (result) {
@@ -239,7 +239,7 @@ export const useRouteController = (
         const rawMap = toRaw(map.value);
 
         const source = rawMap.getSource(
-            "debug-route"
+            "debug-route",
         ) as maplibregl.GeoJSONSource;
 
         source.setData({
@@ -311,7 +311,7 @@ export const useRouteController = (
                     ],
                 },
             },
-            "sprite-locations"
+            "sprite-locations",
         );
     }
 
@@ -319,7 +319,7 @@ export const useRouteController = (
         clickCoords: [number, number],
         truckCoords: [number, number],
         truckHeading: number,
-        createEndMarker: boolean
+        createEndMarker: boolean,
     ) {
         if (adjacency.size === 0 || isCalculating.value) return;
 
@@ -332,12 +332,12 @@ export const useRouteController = (
             const startConfig = findBestStartConfiguration(
                 truckCoords,
                 truckHeading,
-                10
+                10,
             );
 
             if (!startConfig) {
                 console.warn(
-                    "Could not find a valid road matching truck heading."
+                    "Could not find a valid road matching truck heading.",
                 );
                 return;
             }
@@ -349,7 +349,7 @@ export const useRouteController = (
                 toRaw(clickCoords),
                 truckHeading,
                 startConfig.type as "road" | "yard",
-                startConfig.projectedCoords
+                startConfig.projectedCoords,
             );
 
             if (result) {
@@ -383,7 +383,7 @@ export const useRouteController = (
 
                 destinationName.value = getGameLocationName(
                     clickCoords[0],
-                    clickCoords[1]
+                    clickCoords[1],
                 );
 
                 routeFound.value = true;
@@ -401,7 +401,7 @@ export const useRouteController = (
 
     const updateRouteProgress = (
         truckCoords: [number, number],
-        truckHeading: number
+        truckHeading: number,
     ) => {
         if (!currentRoutePath.value || currentRoutePath.value.length < 2)
             return;
@@ -425,7 +425,7 @@ export const useRouteController = (
             const distSq = getSqDistToSegment(
                 truckCoords,
                 path[i]!,
-                path[i + 1]!
+                path[i + 1]!,
             );
 
             if (distSq < minSqDist) {
@@ -443,7 +443,7 @@ export const useRouteController = (
                     toRaw(savedDestination.value),
                     truckCoords,
                     truckHeading,
-                    false // TODO: GET IF ITS A JOB OR NOT (FALSE FOR JOB, TRUE FOR MANUAL ENDMARK)
+                    false, // TODO: GET IF ITS A JOB OR NOT (FALSE FOR JOB, TRUE FOR MANUAL ENDMARK)
                 );
                 return;
             }
@@ -481,7 +481,7 @@ export const useRouteController = (
     function clearRouteState() {
         if (!map.value) return;
         const source = map.value.getSource(
-            "debug-route"
+            "debug-route",
         ) as maplibregl.GeoJSONSource;
 
         if (source) {

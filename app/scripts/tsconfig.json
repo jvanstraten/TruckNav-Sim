@@ -4,6 +4,7 @@
         "allowImportingTsExtensions": true,
         "module": "commonjs",
         "moduleResolution": "node",
+        "types": ["node"],
         "ignoreDeprecations": "6.0"
     },
     "include": ["**/*.ts"]

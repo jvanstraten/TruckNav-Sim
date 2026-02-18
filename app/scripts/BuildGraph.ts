@@ -56,7 +56,7 @@ const roadTypeMap = { local: 0, freeway: 1, divided: 2, roundabout: 3 };
 const COORD_MAX_DECIMALS = 6;
 function coordKey(c: Coord) {
     return `${c[0].toFixed(COORD_MAX_DECIMALS)},${c[1].toFixed(
-        COORD_MAX_DECIMALS
+        COORD_MAX_DECIMALS,
     )}`;
 }
 
@@ -70,7 +70,7 @@ function readGeojson(inputDir: string): InputGeoJSON {
 function createBbox(features: InputFeature[]) {
     const tree = new RBush<BBoxItem>();
     const bboxes: Array<[number, number, number, number]> = new Array(
-        features.length
+        features.length,
     ); // minX, minY, maxX, maxY
 
     // Foreach feature (road) create a bounding box
@@ -136,7 +136,7 @@ function storeFeaturePoints(features: InputFeature[]) {
             const snapped = turf.nearestPointOnLine(
                 candidateLine as any,
                 pointGeo,
-                { units: "kilometers" }
+                { units: "kilometers" },
             );
 
             // If it's close enough (< 5 meters), force a connection
@@ -185,7 +185,7 @@ function storeFeaturePoints(features: InputFeature[]) {
 function createLinePointsArray(
     feature: InputFeature,
     splitPointsToMap: Map<number, Set<string>>,
-    i: number
+    i: number,
 ) {
     let line = turf.lineString(feature?.geometry.coordinates);
 
@@ -204,7 +204,7 @@ function createPointsWithDistance(
     ptsSet: Set<string>,
     ptsArr: Coord[],
     line: any,
-    feature: InputFeature
+    feature: InputFeature,
 ) {
     const pointsWithDistance: Array<{ coord: Coord; locKm: number }> = [];
     for (const coord of ptsArr) {
@@ -214,7 +214,7 @@ function createPointsWithDistance(
             const res = turf.nearestPointOnLine(
                 line as any,
                 pt as any,
-                { units: "kilometers" } as any
+                { units: "kilometers" } as any,
             );
 
             const locKm =
@@ -240,7 +240,7 @@ function createPointsWithDistance(
         const res = turf.nearestPointOnLine(
             line as any,
             turf.point(start) as any,
-            { units: "kilometers" }
+            { units: "kilometers" },
         );
 
         pointsWithDistance.push({
@@ -253,7 +253,7 @@ function createPointsWithDistance(
         const res = turf.nearestPointOnLine(
             line as any,
             turf.point(end) as any,
-            { units: "kilometers" }
+            { units: "kilometers" },
         ) as any;
         pointsWithDistance.push({
             coord: end,
@@ -301,7 +301,7 @@ function getBearing(start: Coord, end: Coord) {
 
 function createNodesAndEdges(
     features: InputFeature[],
-    splitPointsToMap: Map<number, Set<string>>
+    splitPointsToMap: Map<number, Set<string>>,
 ) {
     // 1. SETUP
     interface NodeItem {
@@ -377,7 +377,7 @@ function createNodesAndEdges(
             ptsSet,
             ptsArr,
             line,
-            feature
+            feature,
         );
         pointsWithDistance.sort((a, b) => a.locKm - b.locKm);
         const cleaned = cleanUpPoints(pointsWithDistance);
@@ -391,7 +391,7 @@ function createNodesAndEdges(
             const startBearing = getBearing(cleaned[0], cleaned[1]);
             const endBearing = getBearing(
                 cleaned[cleaned.length - 2],
-                cleaned[cleaned.length - 1]
+                cleaned[cleaned.length - 1],
             );
 
             if (!nodeTopology.has(startNodeId))
@@ -419,7 +419,7 @@ function createNodesAndEdges(
         const myStartBearing = getBearing(pts[0], pts[1]);
         const myEndBearing = getBearing(
             pts[pts.length - 2],
-            pts[pts.length - 1]
+            pts[pts.length - 1],
         );
 
         let forwardVotes = 0;
@@ -504,7 +504,10 @@ function createNodesAndEdges(
                     from: firstFromPair,
                     to: secondFromPair,
                     w: Math.round(forwardWeight * 10) / 10,
-                    r: roadTypeMap[props.roadType] || 0,
+                    r:
+                        roadTypeMap[
+                            props.roadType as keyof typeof roadTypeMap
+                        ] || 0,
                 });
             }
             if (backwardWeight !== Infinity) {
@@ -512,7 +515,10 @@ function createNodesAndEdges(
                     from: secondFromPair,
                     to: firstFromPair,
                     w: Math.round(forwardWeight * 10) / 10,
-                    r: roadTypeMap[props.roadType] || 0,
+                    r:
+                        roadTypeMap[
+                            props.roadType as keyof typeof roadTypeMap
+                        ] || 0,
                 });
             }
         }
@@ -575,7 +581,7 @@ async function main() {
     const args = process.argv.slice(2);
     if (args.length < 2) {
         console.error(
-            "Usage: npx ts-node app/scripts/buildGraph.ts <input.geojson> <outDir>"
+            "Usage: npx ts-node app/scripts/buildGraph.ts <input.geojson> <outDir>",
         );
         process.exit(1);
     }
