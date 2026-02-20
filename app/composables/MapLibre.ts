@@ -71,8 +71,8 @@ export async function initializeMap(
         maxPitch: 45,
         attributionControl: false,
         maxBounds: [
-            [-22, 25],
-            [50, 70],
+            [-28, 25], // [[west, south]
+            [50, 74], // [east, north]]
         ],
     });
 
