@@ -126,7 +126,7 @@ export const calculateRoute = (
     const distKm = fastDistKm(startLng, startLat, destLng, destLat);
     const maxIterations = 70000 + distKm * 5000;
 
-    const HEURISTIC_SCALE = 3.0;
+    const HEURISTIC_SCALE = 2.0;
 
     const getHeuristic = (id: number) => {
         const nLng = flatCoords[id * 2]!;
@@ -208,56 +208,62 @@ export const calculateRoute = (
 
                 if (edge.r === 2) {
                     stepCost *= 1.1;
-                    if (angle < -120) stepCost += 100_000;
+                    if (angle < -105) stepCost += 100_000;
                 }
 
-                if (absAngle > 120) {
-                    stepCost += Infinity;
-                } else if (angle < -45) stepCost += 2000;
-                else if (angle > 45) stepCost += 500;
-                else if (absAngle > 10) stepCost += 50;
-
-                let tempPrev = prevId;
-                let traveledDist = 0;
-
-                for (let k = 0; k < 30; k++) {
-                    const grandPrev = cache_previous[tempPrev]!;
-                    if (grandPrev === -1) break;
-
-                    const tLng = flatCoords[tempPrev * 2]!;
-                    const tLat = flatCoords[tempPrev * 2 + 1]!;
-                    const gLng = flatCoords[grandPrev * 2]!;
-                    const gLat = flatCoords[grandPrev * 2 + 1]!;
-
-                    const segDist = fastDistKm(gLng, gLat, tLng, tLat);
-                    traveledDist += segDist;
-
-                    // NOT NEEDED FOR NOW, CAN CAUSE BUGS BECAUSE OF CHANGED ROADNETWORK.
-                    // if (traveledDist > 0.8) {
-                    //     const headingOld = getHeading(gLng, gLat, tLng, tLat);
-
-                    //     const headingNew = getHeading(cLng, cLat, nLng, nLat);
-
-                    //     const distNowToPast = fastDistKm(
-                    //         cLng,
-                    //         cLat,
-                    //         gLng,
-                    //         gLat,
-                    //     );
-
-                    //     const ratio = traveledDist / distNowToPast;
-
-                    //     const diff = getRadianAngleDiff(headingOld, headingNew);
-
-                    //     if (diff > 3.0 && ratio > 1.0) {
-                    //         stepCost += Infinity;
-                    //     } else if (diff > 3.0) {
-                    //         stepCost += 5000;
-                    //     }
-                    //     break;
-                    // }
-                    tempPrev = grandPrev;
+                if (edge.r !== 4) {
+                    if (absAngle > 105) {
+                        stepCost += Infinity;
+                    } else if (angle < -45) {
+                        stepCost += 2000;
+                    } else if (angle > 45) {
+                        stepCost += 500;
+                    } else if (absAngle > 10) {
+                        stepCost += 50;
+                    }
                 }
+
+                // NOT NEEDED FOR NOW, CAN CAUSE BUGS BECAUSE OF CHANGED ROADNETWORK.
+                // let tempPrev = prevId;
+                // let traveledDist = 0;
+
+                // for (let k = 0; k < 30; k++) {
+                //     const grandPrev = cache_previous[tempPrev]!;
+                //     if (grandPrev === -1) break;
+
+                //     const tLng = flatCoords[tempPrev * 2]!;
+                //     const tLat = flatCoords[tempPrev * 2 + 1]!;
+                //     const gLng = flatCoords[grandPrev * 2]!;
+                //     const gLat = flatCoords[grandPrev * 2 + 1]!;
+
+                //     const segDist = fastDistKm(gLng, gLat, tLng, tLat);
+                //     traveledDist += segDist;
+
+                // if (traveledDist > 0.5) {
+                //     const headingOld = getHeading(gLng, gLat, tLng, tLat);
+
+                //     const headingNew = getHeading(cLng, cLat, nLng, nLat);
+
+                //     const distNowToPast = fastDistKm(
+                //         cLng,
+                //         cLat,
+                //         gLng,
+                //         gLat,
+                //     );
+
+                //     const ratio = traveledDist / distNowToPast;
+
+                //     const diff = getRadianAngleDiff(headingOld, headingNew);
+
+                //     if (diff > 4.0 && ratio > 1.0) {
+                //         stepCost += Infinity;
+                //     } else if (diff > 4.0) {
+                //         stepCost += 5000;
+                //     }
+                //     break;
+                // }
+                //     tempPrev = grandPrev;
+                // }
             }
 
             if (stepCost < 1) stepCost = 1;

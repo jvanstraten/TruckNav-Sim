@@ -67,7 +67,7 @@ export async function initializeMap(
         center: [10, 50],
         zoom: 6,
         minZoom: 5,
-        maxZoom: 11.5,
+        // maxZoom: 11.5,
         maxPitch: 45,
         attributionControl: false,
         maxBounds: [

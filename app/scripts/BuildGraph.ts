@@ -45,7 +45,13 @@ interface BBoxItem {
     idx: number;
 }
 
-const roadTypeMap = { local: 0, freeway: 1, divided: 2, roundabout: 3 };
+const roadTypeMap = {
+    local: 0,
+    freeway: 1,
+    divided: 2,
+    roundabout: 3,
+    ferry: 4,
+};
 
 const COORD_MAX_DECIMALS = 6;
 function coordKey(c: Coord) {
@@ -494,15 +500,18 @@ function createNodesAndEdges(
                 }
             }
 
+            const roadTypeValue =
+                props.type === "ferry"
+                    ? 4
+                    : roadTypeMap[props.roadType as keyof typeof roadTypeMap] ||
+                      roadTypeMap[props.type as keyof typeof roadTypeMap] ||
+                      0;
             if (forwardWeight !== Infinity) {
                 edges.push({
                     from: firstFromPair,
                     to: secondFromPair,
                     w: Math.round(forwardWeight * 10) / 10,
-                    r:
-                        roadTypeMap[
-                            props.roadType as keyof typeof roadTypeMap
-                        ] || 0,
+                    r: roadTypeValue,
                     dlc: dlcId,
                 });
             }
@@ -511,10 +520,7 @@ function createNodesAndEdges(
                     from: secondFromPair,
                     to: firstFromPair,
                     w: Math.round(forwardWeight * 10) / 10,
-                    r:
-                        roadTypeMap[
-                            props.roadType as keyof typeof roadTypeMap
-                        ] || 0,
+                    r: roadTypeValue,
                     dlc: dlcId,
                 });
             }
