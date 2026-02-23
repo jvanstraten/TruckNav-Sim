@@ -2,11 +2,11 @@
 import { ref, onMounted, shallowRef, Transition } from "vue";
 import "maplibre-gl/dist/maplibre-gl.css";
 import maplibregl from "maplibre-gl";
-import type TruckMarker from "./truckMarker.vue";
 import SpeedLimit from "../Navigation/speedLimit.vue";
 import { usePlatform } from "~/composables/Platform";
 import eruda from "eruda";
 import { blendWithBg, lightenColor } from "~/assets/utils/colors";
+import { generateTruckIcon } from "~/assets/utils/generateMarkers";
 
 defineProps<{ goHome: () => void }>();
 
@@ -14,14 +14,11 @@ defineProps<{ goHome: () => void }>();
 const mapEl = shallowRef<HTMLElement | null>(null);
 const map = shallowRef<maplibregl.Map | null>(null);
 const isSettingsPanelOpened = ref(false);
+const isClickingEnabled = ref(true);
 
 // UI STATE
 const isSheetExpanded = ref(false);
 const isSheetHidden = ref(false);
-
-// TRUCK STATE
-const truckMarkerComponent = ref<InstanceType<typeof TruckMarker> | null>(null);
-const isClickingEnabled = ref(true);
 
 // JOB STATE
 const currentJobKey = ref<string>("");
@@ -68,16 +65,6 @@ const { isElectron, isMobile, isWeb } = usePlatform();
 // Graph manipulation
 const { loading, progress, adjacency, nodeCoords, initializeGraphData } =
     useGraphSystem();
-
-//
-//
-// TruckMarker
-const {
-    truckMarker,
-    setupTruckMarker,
-    updateTruckMarkerPosition,
-    removeMarker,
-} = useTruckMarker(map);
 
 //
 //
@@ -166,19 +153,12 @@ watch(
 // We check each time the theme color changes to udate the map libre appsettings.default theme color
 watch(
     () => settings.value.themeColor,
-    (newColor) => {
+    async (newColor) => {
         if (!map.value) return;
 
-        if (map.value.getLayer("city-points")) {
-            map.value.setPaintProperty("city-points", "circle-color", newColor);
-        }
-
-        if (map.value.getLayer("capital-points")) {
-            map.value.setPaintProperty(
-                "capital-points",
-                "circle-color",
-                newColor,
-            );
+        if (map.value.hasImage("truck-icon")) {
+            const newTruckImg = await generateTruckIcon(newColor);
+            map.value.updateImage("truck-icon", newTruckImg);
         }
 
         if (map.value.getLayer("prefab-zones")) {
@@ -207,15 +187,9 @@ watch([loading, gameConnected], ([isLoading, isGameConnected]) => {
         }, 100);
 
         if (isGameConnected) {
-            if (!truckMarkerComponent.value) return;
-            const truckEl = truckMarkerComponent.value.markerElement!;
-            setupTruckMarker(truckEl);
-
             setTimeout(() => {
                 isCameraLocked.value = true;
             }, 500);
-        } else {
-            removeMarker();
         }
     }
 });
@@ -232,7 +206,31 @@ onMounted(async () => {
         map.value = markRaw(mapInstance);
         if (!map.value) return;
 
+        const initialTruckImg = await generateTruckIcon(
+            settings.value.themeColor,
+        );
+        map.value!.addImage("truck-icon", initialTruckImg);
+        map.value!.addSource("truck-source", {
+            type: "geojson",
+            data: {
+                type: "Feature",
+                geometry: { type: "Point", coordinates: [0, 0] },
+                properties: { heading: 0 },
+            },
+        });
         map.value.on("load", async () => {
+            map.value!.addLayer({
+                id: "truck-layer",
+                type: "symbol",
+                source: "truck-source",
+                layout: {
+                    "icon-image": "truck-icon",
+                    "icon-rotate": ["get", "heading"],
+                    "icon-rotation-alignment": "map",
+                    "icon-allow-overlap": true,
+                    "icon-ignore-placement": true,
+                },
+            });
             const graphData = await initializeGraphData();
             if (!graphData) return;
             const { nodes, edges } = graphData;
@@ -243,18 +241,20 @@ onMounted(async () => {
         });
 
         map.value.on("click", async (e) => {
+            const features = map.value!.queryRenderedFeatures(e.point, {
+                layers: ["destination-layer"],
+            });
+            if (features.length > 0) return;
+
             console.log(
                 ` ${e.lngLat.lat.toFixed(5)}, ${e.lngLat.lng.toFixed(5)}`,
             ); // KEEP FOR DEBUGGING BUGGED AREAS
             if (!isClickingEnabled.value) return;
-            if (!truckMarker.value) return;
+            if (!truckCoords.value) return;
 
             await handleRouteClick(
                 [e.lngLat.lng, e.lngLat.lat],
-                [
-                    truckMarker.value.getLngLat().lng,
-                    truckMarker.value.getLngLat().lat,
-                ],
+                truckCoords.value,
                 truckHeading.value,
                 true,
             );
@@ -270,8 +270,18 @@ onMounted(async () => {
 
 function telemetryClick() {
     if (!truckCoords.value) return;
+    if (!map.value) return;
 
-    updateTruckMarkerPosition(truckCoords.value, truckHeading.value);
+    const truckSource = map.value.getSource(
+        "truck-source",
+    ) as maplibregl.GeoJSONSource;
+    if (truckSource) {
+        truckSource.setData({
+            type: "Feature",
+            geometry: { type: "Point", coordinates: truckCoords.value },
+            properties: { heading: truckHeading.value },
+        });
+    }
 
     followTruck(truckCoords.value, truckHeading.value);
 
@@ -281,12 +291,9 @@ function telemetryClick() {
 }
 
 function onStartNavigation() {
-    if (!truckMarker.value) return;
+    if (!truckCoords.value) return;
 
-    startNavigationMode(
-        [truckMarker.value.getLngLat().lng, truckMarker.value.getLngLat().lat],
-        truckHeading.value,
-    );
+    startNavigationMode(truckCoords.value, truckHeading.value);
 
     isSheetExpanded.value = false;
     isSheetHidden.value = true;
@@ -468,11 +475,6 @@ const toggleSettingsPanel = () => {
                             :truck-speed="truckSpeed"
                         />
                     </Transition>
-
-                    <TruckMarker
-                        :is-camera-locked="isCameraLocked"
-                        ref="truckMarkerComponent"
-                    />
                 </div>
             </Transition>
 

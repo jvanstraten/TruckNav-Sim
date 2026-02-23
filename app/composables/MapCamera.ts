@@ -114,6 +114,7 @@ export const useMapCamera = (map: Ref<Map | null>) => {
         map.value.easeTo({
             center: coords,
             bearing: isNavigating.value ? heading : 0,
+            zoom: 11,
             pitch: 35,
             duration: 300,
             offset: [0, 50],

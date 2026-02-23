@@ -1,5 +1,6 @@
 import { distance, lineString, nearestPointOnLine, point } from "@turf/turf";
 import maplibregl from "maplibre-gl";
+import { generateDestinationIcon } from "~/assets/utils/generateMarkers";
 import {
     getBearing,
     getSqDistToSegment,
@@ -25,7 +26,6 @@ export const useRouteController = (
 
     const savedDestination = ref<[number, number] | null>(null);
 
-    const endMarker = ref<maplibregl.Marker | null>(null);
     const isRouteActive = ref(false);
 
     const startNodeId = ref<number | null>(null);
@@ -39,18 +39,14 @@ export const useRouteController = (
 
     watch(
         () => settings.value.themeColor,
-        (newColor) => {
-            if (endMarker.value) {
-                const element = endMarker.value.getElement();
+        async (newColor) => {
+            if (map.value && map.value.hasImage("destination-icon")) {
+                const newPinImg = await generateDestinationIcon(newColor);
 
-                const svgPaths = element.querySelectorAll("path");
-                svgPaths.forEach((path) => {
-                    path.setAttribute("fill", newColor);
-                });
+                map.value.updateImage("destination-icon", newPinImg);
             }
         },
     );
-
     watch(
         () => settings.value.routeColor,
         (newColor) => {
@@ -65,7 +61,6 @@ export const useRouteController = (
     );
 
     let worker: Worker | null = null;
-
     if (import.meta.client) {
         worker = new Worker(
             new URL("~/assets/workers/route.worker.ts", import.meta.url),
@@ -292,27 +287,28 @@ export const useRouteController = (
         const endLocation = nodeCoords.get(nodeId);
         if (!endLocation || !map.value) return;
 
-        const marker = new maplibregl.Marker({
-            color: settings.value.themeColor,
-        })
-            .setLngLat(endLocation)
-            .addTo(map.value);
-
-        const markerEl = marker.getElement();
-        markerEl.style.cursor = "pointer";
-        markerEl.classList.add("my-custom-marker");
-
-        markerEl.addEventListener("click", (ev) => {
-            ev.stopPropagation();
-            clearRouteState();
-        });
-
-        endMarker.value = marker;
+        const destSource = map.value.getSource(
+            "destination-source",
+        ) as maplibregl.GeoJSONSource;
+        if (destSource) {
+            destSource.setData({
+                type: "Feature",
+                geometry: { type: "Point", coordinates: endLocation },
+                properties: {},
+            });
+        }
     }
 
-    function setupRouteLayer() {
+    async function setupRouteLayer() {
         if (!map.value) return;
         if (map.value.getSource("route-line")) return;
+
+        if (!map.value.hasImage("destination-icon")) {
+            const pinImg = await generateDestinationIcon(
+                settings.value.themeColor,
+            );
+            map.value.addImage("destination-icon", pinImg);
+        }
 
         map.value.addSource("route-line", {
             type: "geojson",
@@ -344,6 +340,35 @@ export const useRouteController = (
             },
             "all-sprites",
         );
+
+        if (!map.value.getSource("destination-source")) {
+            map.value.addSource("destination-source", {
+                type: "geojson",
+                data: { type: "FeatureCollection", features: [] },
+            });
+
+            map.value.addLayer({
+                id: "destination-layer",
+                type: "symbol",
+                source: "destination-source",
+                layout: {
+                    "icon-image": "destination-icon",
+                    "icon-anchor": "bottom",
+                    "icon-allow-overlap": true,
+                    "icon-ignore-placement": true,
+                },
+            });
+
+            map.value.on("click", "destination-layer", () => {
+                clearRouteState();
+            });
+            map.value.on("mouseenter", "destination-layer", () => {
+                map.value!.getCanvas().style.cursor = "pointer";
+            });
+            map.value.on("mouseleave", "destination-layer", () => {
+                map.value!.getCanvas().style.cursor = "";
+            });
+        }
     }
 
     async function handleRouteClick(
@@ -384,11 +409,6 @@ export const useRouteController = (
             );
 
             if (result) {
-                if (endMarker.value) {
-                    endMarker.value.remove();
-                    endMarker.value = null;
-                }
-
                 isRouteActive.value = true;
 
                 endNodeId.value = result.endId;
@@ -481,7 +501,7 @@ export const useRouteController = (
         }
 
         const distToEndSq = getSquaredDist(truckCoords, path[path.length - 1]!);
-        if (distToEndSq < 0.00000025) {
+        if (distToEndSq < 0.000005) {
             clearRouteState();
             return;
         }
@@ -519,13 +539,15 @@ export const useRouteController = (
             source.setData({ type: "FeatureCollection", features: [] });
         }
 
-        if (endMarker.value) {
-            endMarker.value.remove();
-            endMarker.value = null;
+        const destSource = map.value.getSource(
+            "destination-source",
+        ) as maplibregl.GeoJSONSource;
+
+        if (destSource) {
+            destSource.setData({ type: "FeatureCollection", features: [] });
         }
 
         isRouteActive.value = false;
-
         endNodeId.value = null;
         currentRoutePath.value = null;
         savedDestination.value = null;
@@ -535,7 +557,6 @@ export const useRouteController = (
         destinationName,
         routeDistance,
         routeEta,
-        endMarker,
         isCalculating,
         routeFound,
         currentRoutePath,
