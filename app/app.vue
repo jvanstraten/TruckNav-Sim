@@ -1,7 +1,14 @@
 <script setup lang="ts">
-onMounted(() => {
+import { KeepAwake } from "@capacitor-community/keep-awake";
+
+onMounted(async () => {
     const { initSettings } = useSettings();
     initSettings();
+
+    const result = await KeepAwake.isSupported();
+    if (result.isSupported) {
+        await KeepAwake.keepAwake();
+    }
 });
 </script>
 
