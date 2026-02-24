@@ -7,6 +7,8 @@ import { usePlatform } from "~/composables/Platform";
 import eruda from "eruda";
 import { blendWithBg, lightenColor } from "~/assets/utils/colors";
 import { generateTruckIcon } from "~/assets/utils/generateMarkers";
+import { clear } from "node:console";
+import type { setDefaultHighWaterMark } from "node:stream";
 
 defineProps<{ goHome: () => void }>();
 
@@ -100,6 +102,7 @@ const {
 const { settings } = useSettings();
 
 let uiTimer: ReturnType<typeof setTimeout> | null = null;
+let routeTimer: ReturnType<typeof setTimeout> | null = null;
 
 // We check if it has active job, if it has one, plot a route
 watch(
@@ -121,16 +124,16 @@ watch(
 
         const newJobKey = hasJob ? `${city}|${company}` : "";
 
-        if (uiTimer) clearTimeout(uiTimer);
+        if (routeTimer) clearTimeout(routeTimer);
 
-        uiTimer = setTimeout(async () => {
+        routeTimer = setTimeout(async () => {
             if (hasJob && newJobKey !== currentJobKey.value) {
                 if (!truckCoords.value) return;
-
                 const destCoords = findDestinationCoords(city, company);
-                isClickingEnabled.value = false;
 
                 if (destCoords) {
+                    clearRouteState();
+                    isClickingEnabled.value = false;
                     currentJobKey.value = newJobKey;
 
                     await handleRouteClick(
@@ -146,6 +149,26 @@ watch(
         if (!hasJob && currentJobKey.value !== "") {
             clearRouteState();
             currentJobKey.value = "";
+        }
+    },
+);
+
+watch(
+    [hasActiveJob, gameConnected, loading],
+    ([hasJob, isGameConnected, isLoading]) => {
+        if (!isLoading && isGameConnected && !hasJob) {
+            const destination = settings.value.lastDestination;
+
+            if (destination && truckCoords.value) {
+                clearRouteState();
+
+                handleRouteClick(
+                    destination,
+                    truckCoords.value,
+                    truckHeading.value,
+                    true,
+                );
+            }
         }
     },
 );

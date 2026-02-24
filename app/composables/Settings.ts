@@ -4,12 +4,14 @@ export interface AppSettingsState {
     themeColor: string;
     routeColor: string;
     ownedDlcs: number[];
+    lastDestination: [number, number] | null;
 }
 
 const DEFAULT_SETTINGS: AppSettingsState = {
     themeColor: AppSettings.theme.defaultColor,
     routeColor: "#22d3ee",
     ownedDlcs: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    lastDestination: null,
 };
 
 const STORAGE_KEY = "truck-nav-settings";

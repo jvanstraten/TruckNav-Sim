@@ -98,7 +98,8 @@ export const useMapCamera = (map: Ref<Map | null>) => {
     };
 
     const breakLockEvents = [
-        "dragstart",
+        "pointerdown",
+        "mousedown",
         "touchstart",
         "wheel",
         "pitchstart",
@@ -112,7 +113,7 @@ export const useMapCamera = (map: Ref<Map | null>) => {
 
         breakLockEvents.forEach((event) => {
             map.value!.on(event, (e: any) => {
-                if (e.originalEvent && isCameraLocked.value) {
+                if (isCameraLocked.value) {
                     isCameraLocked.value = false;
                 }
             });

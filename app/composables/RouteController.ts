@@ -15,7 +15,7 @@ export const useRouteController = (
 ) => {
     const { getGameLocationName, getWorkerCityData } = useCityData();
     const { getClosestNodes } = useGraphSystem();
-    const { settings } = useSettings();
+    const { settings, updateSettings } = useSettings();
 
     const currentRoutePath = shallowRef<[number, number][] | null>(null);
     const routeStatsCache = shallowRef<Float32Array | null>(null);
@@ -439,6 +439,7 @@ export const useRouteController = (
 
                 routeFound.value = true;
                 currentRouteIndex.value = 0;
+                updateSettings("lastDestination", savedDestination.value);
             } else {
                 routeFound.value = false;
             }
@@ -551,6 +552,7 @@ export const useRouteController = (
         endNodeId.value = null;
         currentRoutePath.value = null;
         savedDestination.value = null;
+        updateSettings("lastDestination", null);
     }
 
     return {
