@@ -7,6 +7,10 @@ import {
     DEVIATION_THRESHOLD_SQ,
     getSquaredDist,
 } from "~/assets/utils/geographicMath";
+import {
+    deleteMapLibreData,
+    setMapLibreData,
+} from "~/assets/utils/mapHelpers.ts";
 
 export const useRouteController = (
     map: Ref<maplibregl.Map | null>,
@@ -263,40 +267,14 @@ export const useRouteController = (
         if (!map.value) return;
 
         const rawMap = toRaw(map.value);
-
-        const source = rawMap.getSource(
-            "route-line",
-        ) as maplibregl.GeoJSONSource;
-
-        source.setData({
-            type: "FeatureCollection",
-            features: [
-                {
-                    type: "Feature",
-                    properties: {},
-                    geometry: {
-                        type: "LineString",
-                        coordinates: toRaw(coords),
-                    },
-                },
-            ],
-        });
+        setMapLibreData(rawMap, "route-line", "LineString", toRaw(coords));
     }
 
     function addDestinationMarker(nodeId: number) {
         const endLocation = nodeCoords.get(nodeId);
         if (!endLocation || !map.value) return;
 
-        const destSource = map.value.getSource(
-            "destination-source",
-        ) as maplibregl.GeoJSONSource;
-        if (destSource) {
-            destSource.setData({
-                type: "Feature",
-                geometry: { type: "Point", coordinates: endLocation },
-                properties: {},
-            });
-        }
+        setMapLibreData(map.value, "destination-source", "Point", endLocation);
     }
 
     async function setupRouteLayer() {
@@ -532,21 +510,9 @@ export const useRouteController = (
 
     function clearRouteState() {
         if (!map.value) return;
-        const source = map.value.getSource(
-            "route-line",
-        ) as maplibregl.GeoJSONSource;
 
-        if (source) {
-            source.setData({ type: "FeatureCollection", features: [] });
-        }
-
-        const destSource = map.value.getSource(
-            "destination-source",
-        ) as maplibregl.GeoJSONSource;
-
-        if (destSource) {
-            destSource.setData({ type: "FeatureCollection", features: [] });
-        }
+        deleteMapLibreData(map.value, "route-line");
+        deleteMapLibreData(map.value, "destination-source");
 
         isRouteActive.value = false;
         endNodeId.value = null;

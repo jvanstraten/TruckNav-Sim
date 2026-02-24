@@ -7,8 +7,6 @@ import { usePlatform } from "~/composables/Platform";
 import eruda from "eruda";
 import { blendWithBg, lightenColor } from "~/assets/utils/colors";
 import { generateTruckIcon } from "~/assets/utils/generateMarkers";
-import { clear } from "node:console";
-import type { setDefaultHighWaterMark } from "node:stream";
 
 defineProps<{ goHome: () => void }>();
 
@@ -217,6 +215,14 @@ watch([loading, gameConnected], ([isLoading, isGameConnected]) => {
     }
 });
 
+watch(gameConnected, (isConnected) => {
+    if (!map.value) return;
+    if (!isConnected) {
+        isCameraLocked.value = false;
+        clearRouteState();
+    }
+});
+
 onMounted(async () => {
     await loadLocationData();
     if (!mapEl.value) return;
@@ -284,14 +290,14 @@ onMounted(async () => {
         });
 
         startTelemetry(() => {
-            telemetryClick();
+            onTelemetryUpdate();
         });
     } catch (e) {
         console.error(e);
     }
 });
 
-function telemetryClick() {
+function onTelemetryUpdate() {
     if (!truckCoords.value) return;
     if (!map.value) return;
 

@@ -1,9 +1,9 @@
-import { ref, onUnmounted } from "vue";
+import { ref } from "vue";
 import type { TelemetryData } from "../../shared/types/Telemetry/TelemetryData";
 import { convertGameToGeo } from "~/assets/utils/gameToGeo";
 import { getBearing } from "~/assets/utils/geographicMath";
-import { convertTelemtryTime } from "~/assets/utils/helpers";
-import { Capacitor, CapacitorHttp } from "@capacitor/core";
+import { convertTelemtryTime } from "~/assets/utils/graphHelpers";
+import { CapacitorHttp } from "@capacitor/core";
 
 export interface TelemetryUpdate {
     truck: TruckState;

@@ -21,7 +21,7 @@ import RBush from "rbush";
 import * as turf from "@turf/turf";
 import path from "path";
 import type { Node, Edge, Coord } from "../../shared/types";
-import { haversine } from "../assets/utils/helpers.ts";
+import { haversine } from "../assets/utils/graphHelpers";
 
 interface InputFeature {
     type: "Feature";

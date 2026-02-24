@@ -143,25 +143,25 @@ export async function initializeMap(
         //// FROM SOURCES
         ////
         // OUTLINE
-        // map.addLayer({
-        //     id: "ets2-water-outline",
-        //     type: "line",
-        //     source: "ets2-all-data",
-        //     "source-layer": "ets2water",
-        //     paint: {
-        //         "line-color": "#1e3a5f",
-        //         "line-width": [
-        //             "interpolate",
-        //             ["linear"],
-        //             ["zoom"],
-        //             5,
-        //             7, // Zoomed out value
-        //             10,
-        //             4, // Zoomed in value
-        //         ],
-        //         "line-opacity": 0.6,
-        //     },
-        // });
+        map.addLayer({
+            id: "ets2-water-outline",
+            type: "line",
+            source: "ets2-all-data",
+            "source-layer": "ets2water",
+            paint: {
+                "line-color": "#1e3a5f",
+                "line-width": [
+                    "interpolate",
+                    ["linear"],
+                    ["zoom"],
+                    5,
+                    7,
+                    10,
+                    4,
+                ],
+                "line-opacity": 0.6,
+            },
+        });
 
         // WATER
         map.addLayer({

@@ -1,4 +1,5 @@
 import { Map } from "maplibre-gl";
+import { setMapLibreData } from "~/assets/utils/mapHelpers.ts";
 
 export const useMapCamera = (map: Ref<Map | null>) => {
     const isCameraLocked = ref(false);
@@ -40,20 +41,25 @@ export const useMapCamera = (map: Ref<Map | null>) => {
                 currentTruckHeading += hDiff * lerpFactor;
             }
 
-            const source = map.value.getSource("truck-source") as any;
-            if (source) {
-                source.setData({
-                    type: "Feature",
-                    geometry: {
-                        type: "Point",
-                        coordinates: currentTruckCoords,
-                    },
-                    properties: { heading: currentTruckHeading },
-                });
-            }
+            setMapLibreData(
+                map.value,
+                "truck-source",
+                "Point",
+                currentTruckCoords,
+                { heading: currentTruckHeading },
+            );
         }
 
-        if (isCameraLocked.value && map.value && targetCoords && !isEasing) {
+        const isTargetAtOrigin =
+            targetCoords && targetCoords[0] === 0 && targetCoords[1] === 0;
+
+        if (
+            isCameraLocked.value &&
+            map.value &&
+            targetCoords &&
+            !isEasing &&
+            !isTargetAtOrigin
+        ) {
             const currentCenter = map.value.getCenter();
             let currentBearing = map.value.getBearing();
 
