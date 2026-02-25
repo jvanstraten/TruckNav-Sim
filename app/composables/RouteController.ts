@@ -41,6 +41,7 @@ export const useRouteController = (
     const routeFound = ref<boolean | null>(null);
 
     const currentRouteIndex = ref(0);
+    const isWorkerReady = ref(false);
 
     watch(
         () => settings.value.themeColor,
@@ -77,6 +78,13 @@ export const useRouteController = (
         };
     }
 
+    function destroyWorker() {
+        if (worker) {
+            worker.terminate();
+            worker = null;
+        }
+    }
+
     function initWorkerData(nodesArray: any[], edgesArray: any[]) {
         if (!worker) return;
 
@@ -90,6 +98,8 @@ export const useRouteController = (
                 cities: cityPayload,
             },
         });
+
+        isWorkerReady.value = true;
     }
 
     function calculateRouteInWorker(
@@ -109,7 +119,7 @@ export const useRouteController = (
 
             const handler = (e: MessageEvent) => {
                 if (e.data.type === "RESULT") {
-                    worker.removeEventListener("message", handler);
+                    worker!.removeEventListener("message", handler);
                     resolve(e.data.payload);
                 }
             };
@@ -356,7 +366,8 @@ export const useRouteController = (
         truckHeading: number,
         createEndMarker: boolean,
     ) {
-        if (adjacency.size === 0 || isCalculating.value) return;
+        if (adjacency.size === 0 || isCalculating.value || !isWorkerReady)
+            return;
 
         isCalculating.value = true;
         routeFound.value = null;
@@ -538,8 +549,10 @@ export const useRouteController = (
         isCalculating,
         routeFound,
         currentRoutePath,
+        isWorkerReady,
         isRouteActive,
         initWorkerData,
+        destroyWorker,
         setupRouteLayer,
         handleRouteClick,
         updateRouteProgress,

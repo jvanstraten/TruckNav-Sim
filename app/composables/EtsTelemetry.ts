@@ -88,7 +88,7 @@ let abortController: AbortController | null = null;
 
 export function useEtsTelemetry() {
     const { isElectron, isMobile, isWeb } = usePlatform();
-    const { savedIP } = usePcConnection();
+    const { settings } = useSettings();
 
     function getCorrectHeading(
         rawGameHeading: number,
@@ -138,7 +138,7 @@ export function useEtsTelemetry() {
                 if (isMobile.value) {
                     try {
                         const response = await CapacitorHttp.get({
-                            url: `http://${savedIP.value}:25555/api/ets2/telemetry`,
+                            url: `http://${settings.value.savedIP}:25555/api/ets2/telemetry`,
                             connectTimeout: 1000,
                         });
 
@@ -189,9 +189,12 @@ export function useEtsTelemetry() {
                         }
                     }
                 } else if (isElectron.value) {
+                    const targetElectronIP =
+                        settings.value.savedIP || "127.0.0.1";
+
                     const telemetryData = await (
                         window as any
-                    ).electronAPI.fetchTelemetry("127.0.0.1");
+                    ).electronAPI.fetchTelemetry(targetElectronIP);
 
                     if (telemetryData && telemetryData.game?.connected) {
                         isTelemetryConnected.value = true;

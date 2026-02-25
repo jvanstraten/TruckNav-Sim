@@ -1,0 +1,125 @@
+.connect-pc-module {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+
+    justify-content: space-between;
+    gap: 4rem;
+}
+
+.input-ip {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1.8rem;
+}
+
+.form-details {
+    background-color: $secondaryColor;
+    padding: 18px;
+    border-radius: 6px;
+    height: 156px;
+
+    transition: 0.2s ease-in-out;
+}
+
+.status {
+    display: flex;
+    justify-content: start;
+    font-size: 1.4rem;
+
+    .connected {
+        color: $green-color;
+    }
+
+    .disconnected {
+        color: $red-color;
+    }
+}
+
+.description {
+    margin-left: 4px;
+    opacity: 0.8;
+    font-size: 1.4rem;
+    padding: 0px 0px 6px 12px;
+
+    border-left: $blue-color 3px solid;
+    border-radius: 3px;
+}
+
+.note {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    margin-bottom: 0.4rem;
+
+    color: $blue-color;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    margin-bottom: 0.6rem;
+
+    input {
+        padding-left: 10px;
+        height: 3.8rem;
+
+        font-weight: 600;
+        font-size: 1.6rem;
+
+        border-style: none;
+        border-radius: 6px;
+
+        color: $primaryColor;
+        background-color: $white-font-text;
+    }
+
+    input:focus {
+        outline: none;
+    }
+
+    ::placeholder {
+        font-weight: 500;
+        opacity: 0.8;
+    }
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0px 1000px $white-font-text inset !important;
+
+    -webkit-text-fill-color: $primaryColor !important;
+
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+.btn {
+    background-color: var(--theme-color);
+    display: flex;
+    gap: 0.8rem;
+
+    font-weight: 600;
+    font-size: 1.8rem;
+    color: $white-font-text;
+
+    border: none;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+    width: 70%;
+    align-self: center;
+
+    justify-content: center;
+    align-items: center;
+
+    transition: 0.2s ease-out;
+
+    &:active {
+        transform: scale(0.97);
+        background-color: $secondaryColor;
+    }
+}

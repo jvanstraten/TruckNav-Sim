@@ -1,9 +1,12 @@
 <script lang="ts" setup>
+const props = defineProps<{ launchChooseGame: () => void }>();
+
 const { fetchIp, localIP } = useNetwork();
+const { updateSettings } = useSettings();
+
 const isServerRunning = ref(false);
 const polling = ref<any>(null);
-
-defineProps<{ launchChooseGame: () => void }>();
+const isWindowOpened = ref(false);
 
 const checkStatus = async () => {
     const processExists = await (window as any).electronAPI.checkServerStatus();
@@ -22,10 +25,9 @@ const checkStatus = async () => {
     }
 };
 
-const startRegularPolling = () => {
-    polling.value = setInterval(async () => {
-        await checkStatus();
-    }, 5000);
+const handleLocalLaunch = async () => {
+    updateSettings("savedIP", "127.0.0.1");
+    props.launchChooseGame();
 };
 
 onMounted(async () => {
@@ -49,8 +51,18 @@ onUnmounted(() => {
     if (polling.value) clearInterval(polling.value);
 });
 
+const startRegularPolling = () => {
+    polling.value = setInterval(async () => {
+        await checkStatus();
+    }, 5000);
+};
+
 const openLink = async (url: string) => {
     (window as any).electronAPI.openExternal(url);
+};
+
+const toggleWindow = () => {
+    isWindowOpened.value = !isWindowOpened.value;
 };
 </script>
 
@@ -129,10 +141,32 @@ const openLink = async (url: string) => {
                 </span>
             </div>
 
-            <button @click.prevent="launchChooseGame" class="btn">
-                <span>Desktop GPS</span>
-                <Icon name="material-symbols:map-rounded" size="20" />
-            </button>
+            <Transition name="panel-pop">
+                <div
+                    @click.self="toggleWindow"
+                    v-show="isWindowOpened"
+                    class="connect-modal-overlay"
+                >
+                    <div class="connect-window">
+                        <InputComputerIP @connected="launchChooseGame" />
+                    </div>
+                </div>
+            </Transition>
+
+            <div class="connection-type">
+                <button @click.prevent="toggleWindow" class="btn">
+                    <span>Remote GPS</span>
+                    <Icon name="material-symbols:link-rounded" size="20" />
+                </button>
+
+                <button @click.prevent="handleLocalLaunch" class="btn">
+                    <span>Local GPS </span>
+                    <Icon
+                        name="material-symbols:screenshot-monitor-outline-rounded"
+                        size="20"
+                    />
+                </button>
+            </div>
         </div>
     </section>
 </template>

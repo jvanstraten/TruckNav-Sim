@@ -8,7 +8,9 @@
         "dev": "nuxt dev",
         "generate": "nuxt generate",
         "preview": "nuxt preview",
-        "postinstall": "nuxt prepare"
+        "postinstall": "nuxt prepare",
+        "electron:sync": "npx nuxi generate && npx cap sync electron && cd electron && npm run electron:start && cd ..",
+        "android:sync": "npx nuxi generate && npx cap sync android && npx cap run android --target=52f73682434f"
     },
     "dependencies": {
         "@capacitor-community/electron": "^5.0.1",

@@ -15,12 +15,16 @@ const adjacency = new Map<
     number,
     { to: number; weight: number; r: number; dlc: number }[]
 >();
+
 const nodeCoords = new Map<number, [number, number]>();
 const nodeTree = new RBush<NodeIndexItem>();
 
+const loadedGame = ref<string | null>(null);
+const loading = ref(true);
+const progress = ref(0);
+
 export function useGraphSystem() {
-    const loading = ref(true);
-    const progress = ref(0);
+    const { settings } = useSettings();
 
     let rawNodesForWorker: any[] = [];
     let rawEdgesForWorker: any[] = [];
@@ -55,9 +59,23 @@ export function useGraphSystem() {
     }
 
     const initializeGraphData = async () => {
+        const activeGame = settings.value.selectedGame;
+
+        if (loadedGame.value !== activeGame) {
+            adjacency.clear();
+            nodeCoords.clear();
+            nodeTree.clear();
+            loadedGame.value = activeGame;
+        }
+
         if (adjacency.size > 0) {
-            loading.value = false;
+            loading.value = true;
+            progress.value = 0;
+
+            await new Promise((r) => setTimeout(r, 100));
             progress.value = 100;
+            await new Promise((r) => setTimeout(r, 200));
+            loading.value = false;
 
             const existingNodes = Array.from(nodeCoords.entries());
 
@@ -143,7 +161,7 @@ export function useGraphSystem() {
             clearInterval(ghostInterval);
             setTimeout(() => {
                 loading.value = false;
-            }, 1000);
+            }, 500);
         }
 
         return { edges: rawEdgesForWorker, nodes: rawNodesForWorker };

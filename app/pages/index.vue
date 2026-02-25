@@ -2,12 +2,19 @@
 import { SafeArea, SystemBarsType } from "@capacitor-community/safe-area";
 
 const { isElectron, isMobile, isWeb } = usePlatform();
+const { settings } = useSettings();
 
 const currentView = ref<string>("");
 
 watch(currentView, async () => {
     await nextTick();
     updateSystemBars();
+
+    if (isElectron.value) {
+        if (currentView.value === "desktopHome") {
+            (window as any).electronAPI.setWindowSize(900, 600, false, false);
+        }
+    }
 });
 
 const updateSystemBars = async () => {
@@ -98,6 +105,10 @@ const goHome = () => {
     </template>
 
     <Transition name="page-fade">
-        <LazyMap v-if="currentView === 'map'" :goHome="goHome" />
+        <LazyMap
+            v-if="currentView === 'map'"
+            :goHome="goHome"
+            :key="settings.selectedGame ?? 'none'"
+        />
     </Transition>
 </template>

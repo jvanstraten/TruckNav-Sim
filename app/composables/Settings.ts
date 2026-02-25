@@ -6,6 +6,7 @@ export interface AppSettingsState {
     ownedDlcs: number[];
     lastDestination: [number, number] | null;
     selectedGame: "ats" | "ets2" | null;
+    savedIP: string | null;
 }
 
 const DEFAULT_SETTINGS: AppSettingsState = {
@@ -14,6 +15,7 @@ const DEFAULT_SETTINGS: AppSettingsState = {
     ownedDlcs: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     lastDestination: null,
     selectedGame: null,
+    savedIP: null,
 };
 
 const STORAGE_KEY = "truck-nav-settings";

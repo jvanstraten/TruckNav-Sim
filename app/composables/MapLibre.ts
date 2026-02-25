@@ -110,7 +110,9 @@ export async function initializeMap(
         },
     };
 
-    const map = new maplibregl.Map(gameMap.ats as maplibregl.MapOptions);
+    const selectedMap =
+        settings.value.selectedGame === "ets2" ? gameMap.ets : gameMap.ats;
+    const map = new maplibregl.Map(selectedMap as maplibregl.MapOptions);
 
     map.on("error", (e) => {
         console.error(">>> MAP ERROR EVENT:", e);

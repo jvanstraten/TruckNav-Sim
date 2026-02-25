@@ -1,8 +1,6 @@
 require("./rt/electron-rt");
 //////////////////////////////
 // User Defined Preload scripts below
-console.log("User Preload!");
-
 import { contextBridge, ipcRenderer } from "electron";
 
 contextBridge.exposeInMainWorld("electronAPI", {
@@ -17,7 +15,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
         width: number,
         height: number,
         resizable: boolean,
-        maximize: boolean
+        maximize: boolean,
     ) =>
         ipcRenderer.send("set-window-size", {
             width,

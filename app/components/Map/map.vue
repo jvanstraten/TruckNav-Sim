@@ -35,6 +35,7 @@ const clickingNotificationTrigger = ref(0);
 // Telemetry Data
 const {
     startTelemetry,
+    stopTelemetry,
     gameTime,
     gameConnected,
     truckCoords,
@@ -89,7 +90,9 @@ const {
     routeDistance,
     routeEta,
     isCalculating: isCalculatingRoute,
+    isWorkerReady,
     initWorkerData,
+    destroyWorker,
     isRouteActive,
     routeFound,
 } = useRouteController(map, adjacency, nodeCoords);
@@ -102,11 +105,22 @@ const { settings } = useSettings();
 let uiTimer: ReturnType<typeof setTimeout> | null = null;
 let routeTimer: ReturnType<typeof setTimeout> | null = null;
 
+// Forcing loading screen before mounting elements to prevent flashing between game changes
+loading.value = true;
+progress.value = 0;
+
 // We check if it has active job, if it has one, plot a route
 watch(
-    [hasActiveJob, destinationCity, destinationCompany, gameConnected, loading],
-    async ([hasJob, city, company, isConnected, isLoading]) => {
-        if (isLoading) return;
+    [
+        hasActiveJob,
+        destinationCity,
+        destinationCompany,
+        gameConnected,
+        loading,
+        isWorkerReady,
+    ],
+    async ([hasJob, city, company, isConnected, isLoading, isWorkerReady]) => {
+        if (isLoading || !isWorkerReady) return;
 
         if (!isConnected) {
             currentJobKey.value = "";
@@ -152,9 +166,9 @@ watch(
 );
 
 watch(
-    [hasActiveJob, gameConnected, loading],
-    ([hasJob, isGameConnected, isLoading]) => {
-        if (!isLoading && isGameConnected && !hasJob) {
+    [hasActiveJob, gameConnected, loading, isWorkerReady],
+    ([hasJob, isGameConnected, isLoading, isWorkerReady]) => {
+        if (!isLoading && isWorkerReady && isGameConnected && !hasJob) {
             const destination = settings.value.lastDestination;
 
             if (destination && truckCoords.value) {
@@ -224,6 +238,7 @@ watch(gameConnected, (isConnected) => {
 });
 
 onMounted(async () => {
+    // eruda.init(); // KEEP FOR DEBUGGING MOBILE
     await loadLocationData();
     if (!mapEl.value) return;
     if (isElectron.value) {
@@ -295,6 +310,19 @@ onMounted(async () => {
         });
     } catch (e) {
         console.error(e);
+    }
+});
+
+onUnmounted(() => {
+    stopTelemetry();
+    destroyWorker();
+
+    if (routeTimer) clearTimeout(routeTimer);
+    if (uiTimer) clearTimeout(uiTimer);
+
+    if (map.value) {
+        map.value.remove();
+        map.value = null;
     }
 });
 
