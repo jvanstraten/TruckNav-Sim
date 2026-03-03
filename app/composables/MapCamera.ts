@@ -1,6 +1,9 @@
 import { Map } from "maplibre-gl";
 import { setMapLibreData } from "~/assets/utils/map/helpers";
 
+const PADDING_NAV = { top: 180, bottom: 0, left: 0, right: 0 };
+const PADDING_FREE = { top: 0, bottom: 0, left: 0, right: 0 };
+
 export const useMapCamera = (map: Ref<Map | null>) => {
     const isCameraLocked = ref(false);
     const isNavigating = ref(false);
@@ -16,6 +19,7 @@ export const useMapCamera = (map: Ref<Map | null>) => {
     let easeTimeout: ReturnType<typeof setTimeout> | null = null;
 
     let lastTime = 0;
+    let lastDataUpdate = 0;
 
     const renderLoop = (timestamp: number) => {
         if (!lastTime) lastTime = timestamp;
@@ -25,29 +29,47 @@ export const useMapCamera = (map: Ref<Map | null>) => {
         const dt = Math.min(deltaTime, 100);
         const lerpFactor = 1 - Math.pow(0.8, dt / 16.666);
 
+        let iconMoved = false;
+
         if (map.value && targetCoords) {
             if (!currentTruckCoords) {
                 currentTruckCoords = [...targetCoords] as [number, number];
                 currentTruckHeading = targetHeading;
+                iconMoved = true;
             } else {
-                currentTruckCoords[0] +=
-                    (targetCoords[0] - currentTruckCoords[0]) * lerpFactor;
-                currentTruckCoords[1] +=
-                    (targetCoords[1] - currentTruckCoords[1]) * lerpFactor;
+                const diffX = targetCoords[0] - currentTruckCoords[0];
+                const diffY = targetCoords[1] - currentTruckCoords[1];
 
                 let hDiff = targetHeading - currentTruckHeading;
                 while (hDiff < -180) hDiff += 360;
                 while (hDiff > 180) hDiff -= 360;
-                currentTruckHeading += hDiff * lerpFactor;
+
+                if (
+                    Math.abs(diffX) > 0.000002 ||
+                    Math.abs(diffY) > 0.000002 ||
+                    Math.abs(hDiff) > 0.1
+                ) {
+                    currentTruckCoords[0] += diffX * lerpFactor;
+                    currentTruckCoords[1] += diffY * lerpFactor;
+                    currentTruckHeading += hDiff * lerpFactor;
+                    iconMoved = true;
+                } else {
+                    currentTruckCoords[0] = targetCoords[0];
+                    currentTruckCoords[1] = targetCoords[1];
+                    currentTruckHeading = targetHeading;
+                }
             }
 
-            setMapLibreData(
-                map.value,
-                "truck-source",
-                "Point",
-                currentTruckCoords,
-                { heading: currentTruckHeading },
-            );
+            if (iconMoved && timestamp - lastDataUpdate > 50) {
+                setMapLibreData(
+                    map.value,
+                    "truck-source",
+                    "Point",
+                    currentTruckCoords,
+                    { heading: currentTruckHeading },
+                );
+                lastDataUpdate = timestamp;
+            }
         }
 
         const isTargetAtOrigin =
@@ -56,34 +78,33 @@ export const useMapCamera = (map: Ref<Map | null>) => {
         if (
             isCameraLocked.value &&
             map.value &&
-            targetCoords &&
+            currentTruckCoords &&
             !isEasing &&
             !isTargetAtOrigin
         ) {
             const currentCenter = map.value.getCenter();
-            let currentBearing = map.value.getBearing();
+            const currentBearing = map.value.getBearing();
+            const diffX = currentTruckCoords[0] - currentCenter.lng;
+            const diffY = currentTruckCoords[1] - currentCenter.lat;
 
-            const lng =
-                currentCenter.lng +
-                (targetCoords[0] - currentCenter.lng) * lerpFactor;
-            const lat =
-                currentCenter.lat +
-                (targetCoords[1] - currentCenter.lat) * lerpFactor;
+            const targetCamBearing = isNavigating.value
+                ? currentTruckHeading
+                : 0;
+            let cDiff = targetCamBearing - currentBearing;
+            while (cDiff < -180) cDiff += 360;
+            while (cDiff > 180) cDiff -= 360;
 
-            let diff =
-                (isNavigating.value ? targetHeading : 0) - currentBearing;
-            while (diff < -180) diff += 360;
-            while (diff > 180) diff -= 360;
-            const bearing = currentBearing + diff * lerpFactor;
-
-            map.value.jumpTo({
-                center: [lng, lat],
-                bearing: bearing,
-
-                padding: isNavigating.value
-                    ? { top: 180, bottom: 0, left: 0, right: 0 }
-                    : { top: 0, bottom: 0, left: 0, right: 0 },
-            });
+            if (
+                Math.abs(diffX) > 0.000002 ||
+                Math.abs(diffY) > 0.000002 ||
+                Math.abs(cDiff) > 0.5
+            ) {
+                map.value.jumpTo({
+                    center: [currentTruckCoords[0], currentTruckCoords[1]],
+                    bearing: currentBearing + cDiff,
+                    padding: isNavigating.value ? PADDING_NAV : PADDING_FREE,
+                });
+            }
         }
 
         animationFrameId = requestAnimationFrame(renderLoop);
@@ -158,7 +179,7 @@ export const useMapCamera = (map: Ref<Map | null>) => {
             zoom: 11,
             pitch: 38,
             duration: 300,
-            padding: { top: 180, bottom: 0, left: 0, right: 0 },
+            padding: PADDING_NAV,
         });
     };
 

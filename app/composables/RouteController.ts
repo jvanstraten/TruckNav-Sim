@@ -34,6 +34,8 @@ export const useRouteController = (
     const isRouteActive = ref(false);
     const isYardStart = ref(false);
 
+    const isTruckInYard = ref(false);
+
     const startNodeId = ref<number | null>(null);
     const endNodeId = ref<number | null>(null);
     const lastMathPos = ref<[number, number] | null>(null);
@@ -49,7 +51,6 @@ export const useRouteController = (
         async (newColor) => {
             if (map.value && map.value.hasImage("destination-icon")) {
                 const newPinImg = await generateDestinationIcon(newColor);
-
                 map.value.updateImage("destination-icon", newPinImg);
             }
         },
@@ -113,14 +114,52 @@ export const useRouteController = (
         let t =
             ((p[0] - v[0]) * (w[0] - v[0]) + (p[1] - v[1]) * (w[1] - v[1])) /
             l2;
-        t = Math.max(0, Math.min(1, t)); // clamp to segment bounds
+        t = Math.max(0, Math.min(1, t));
         return [v[0] + t * (w[0] - v[0]), v[1] + t * (w[1] - v[1])];
+    }
+
+    let lastPrefabCheckTime = 0;
+    let lastPrefabCheckResult = false;
+    function isPositionInPrefab(coords: [number, number]): boolean {
+        const now = Date.now();
+        if (now - lastPrefabCheckTime < 250) {
+            return lastPrefabCheckResult;
+        }
+        lastPrefabCheckTime = now;
+
+        if (!map.value || !map.value.getLayer("prefab-zones")) {
+            lastPrefabCheckResult = false;
+            return false;
+        }
+
+        try {
+            const screenPt = map.value.project(coords);
+            const bbox: [maplibregl.PointLike, maplibregl.PointLike] = [
+                [screenPt.x - 20, screenPt.y - 20],
+                [screenPt.x + 20, screenPt.y + 20],
+            ];
+
+            const features = map.value.queryRenderedFeatures(bbox, {
+                layers: ["prefab-zones"],
+            });
+            lastPrefabCheckResult = features.length > 0;
+            return lastPrefabCheckResult;
+        } catch (e) {
+            lastPrefabCheckResult = false;
+            return false;
+        }
     }
 
     function getSnappedCoords(
         truckCoords: [number, number],
         truckHeading: number,
     ): [number, number] {
+        isTruckInYard.value = isPositionInPrefab(truckCoords);
+
+        if (isTruckInYard.value) {
+            return truckCoords;
+        }
+
         const config = findBestStartConfiguration(truckCoords, truckHeading, 2);
 
         if (!config || !config.projectedCoords) {
@@ -134,8 +173,6 @@ export const useRouteController = (
         const distKm = Math.sqrt(distSq) * 111;
 
         let alpha = 0;
-        // - If < 15m from the line, trust the raw GPS (perfectly smooth around curves).
-        // - If > 15m off road (map tiles are misaligned), smoothly increase the snap pull up to 90%.
         if (distKm > 0.015) {
             alpha = Math.min((distKm - 0.015) / 0.03, 0.9);
         }
@@ -197,13 +234,9 @@ export const useRouteController = (
             return null;
         }
 
-        const nearbyNodes = getClosestNodes(truckCoords, 100, 0.1);
+        const nearbyNodes = getClosestNodes(truckCoords, 5, 0.1);
 
         if (nearbyNodes.length === 0) {
-            console.error(
-                "CRITICAL: Quadtree returned 0 nodes near truck.",
-                truckCoords,
-            );
             return null;
         }
 
@@ -257,7 +290,7 @@ export const useRouteController = (
 
         if (bestEdge) return bestEdge;
 
-        const yardCandidates = getClosestNodes(truckCoords, 20, 0.3);
+        const yardCandidates = getClosestNodes(truckCoords, 2, 0.3);
         let closestNodeId: number | null = null;
         let minNodeDist = Infinity;
 
@@ -287,10 +320,6 @@ export const useRouteController = (
         return null;
     }
 
-    /**
-     * Tries to find a route. If it fails, it expands the search radius
-     * around the destination and tries again automatically.
-     */
     async function findFlexibleRoute(
         startNodeId: number,
         targetCoords: [number, number],
@@ -448,7 +477,6 @@ export const useRouteController = (
 
                 endNodeId.value = result.endId;
 
-                // Safety, it is now immutable.
                 const frozenRawPath = Object.freeze(result.rawPath);
                 currentRoutePath.value = frozenRawPath as any;
 
@@ -525,9 +553,12 @@ export const useRouteController = (
         currentRouteIndex.value = bestIndex;
         const now = Date.now();
         if (now - lastRecalcTime.value < 5000) return;
+
         let activeThreshold = DEVIATION_THRESHOLD_SQ;
 
-        if (isYardStart.value) {
+        if (isTruckInYard.value) {
+            activeThreshold = 0.05;
+        } else if (isYardStart.value) {
             if (bestIndex > 0) {
                 isYardStart.value = false;
             } else {

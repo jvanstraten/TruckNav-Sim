@@ -344,7 +344,7 @@ export async function initializeMap(
                     10,
                     1.5,
                 ],
-                "icon-allow-overlap": false,
+                "icon-allow-overlap": true,
                 "symbol-placement": "point",
             },
         });
@@ -368,7 +368,7 @@ export async function initializeMap(
                     10,
                     0.9,
                 ],
-                "icon-allow-overlap": false,
+                "icon-allow-overlap": true,
                 "symbol-placement": "point",
             },
         });
@@ -386,7 +386,8 @@ export async function initializeMap(
                 "text-size": 15,
                 "text-anchor": "bottom",
                 "text-offset": [0, -0.3],
-                "text-allow-overlap": false,
+                "text-allow-overlap": true,
+                "text-ignore-placement": true,
             },
             paint: {
                 "text-color": "#ffffff",
@@ -411,12 +412,15 @@ export async function initializeMap(
                 "text-font": ["Quicksand Regular"],
                 "text-anchor": "bottom",
                 "text-offset": [0, -0.3],
+                "text-allow-overlap": true,
+                "text-ignore-placement": true,
             },
             paint: {
                 "text-color": "#ffffff",
                 "text-halo-color": "#ffffff",
                 "text-halo-width": 0.5,
             },
+
             minzoom: 6,
             maxzoom: 8,
         });
@@ -433,6 +437,8 @@ export async function initializeMap(
                 "text-font": ["Quicksand Regular"],
                 "text-anchor": "bottom",
                 "text-offset": [0, -0.3],
+                "text-allow-overlap": true,
+                "text-ignore-placement": true,
             },
             paint: {
                 "text-color": "#ffffff",
