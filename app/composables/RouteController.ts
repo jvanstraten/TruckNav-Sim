@@ -130,15 +130,14 @@ export const useRouteController = (
         const [tx, ty] = truckCoords;
         const [px, py] = config.projectedCoords;
 
-        // Math-based distance (1 degree of coords is roughly 111km)
         const distSq = getSquaredDist(truckCoords, config.projectedCoords);
         const distKm = Math.sqrt(distSq) * 111;
 
-        // - If < 10m from the line, trust the raw GPS (perfectly smooth around curves).
-        // - If > 10m off road (map tiles are misaligned), smoothly increase the snap pull up to 90%.
         let alpha = 0;
-        if (distKm > 0.01) {
-            alpha = Math.min((distKm - 0.01) / 0.03, 0.9);
+        // - If < 15m from the line, trust the raw GPS (perfectly smooth around curves).
+        // - If > 15m off road (map tiles are misaligned), smoothly increase the snap pull up to 90%.
+        if (distKm > 0.015) {
+            alpha = Math.min((distKm - 0.015) / 0.03, 0.9);
         }
 
         if (alpha === 0) {
@@ -239,7 +238,9 @@ export const useRouteController = (
                 );
                 const distSq = getSquaredDist(truckCoords, projected);
                 const distKm = Math.sqrt(distSq) * 111;
-                const score = distKm + trueDiff * 0.001;
+
+                const headingPenalty = Math.pow(trueDiff / 90, 2) * 0.1;
+                const score = distKm + headingPenalty;
 
                 if (score < minScore) {
                     minScore = score;
