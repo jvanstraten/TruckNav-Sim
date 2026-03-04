@@ -1,13 +1,19 @@
 <script lang="ts" setup>
 import { ets2Expansions } from "~/data/ets2/ets2Expansions";
-
+import { atsExpansions } from "~/data/ats/atsExpansions";
 const props = defineProps<{ closePanel: () => void }>();
 
 const isDlcPanelOpened = ref(false);
-const { activeSettings } = useSettings();
+const { settings, activeSettings } = useSettings();
 const toggleDlcPanel = () => {
     isDlcPanelOpened.value = !isDlcPanelOpened.value;
 };
+
+const selectedExpansion = computed(() => {
+    return settings.value.selectedGame === "ets2"
+        ? ets2Expansions
+        : atsExpansions;
+});
 </script>
 
 <template>
@@ -54,7 +60,7 @@ const toggleDlcPanel = () => {
                     class="nav-btn settings-btn default-color"
                 >
                     {{ activeSettings.ownedDlcs.length }} /
-                    {{ Object.keys(ets2Expansions).length }} active
+                    {{ Object.keys(selectedExpansion).length }} active
                 </button>
             </div>
         </div>

@@ -20,7 +20,7 @@ export interface AppSettingsState {
 const DEFAULT_PROFILE: GameProfile = {
     themeColor: AppSettings.theme.defaultColor,
     routeColor: "#22d3ee",
-    ownedDlcs: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    ownedDlcs: Array.from({ length: 10 }, (_, i) => i + 1),
     lastDestination: null,
 };
 
@@ -29,7 +29,11 @@ const DEFAULT_SETTINGS: AppSettingsState = {
     savedIP: null,
     profiles: {
         ets2: { ...DEFAULT_PROFILE, themeColor: "#fbc02d" },
-        ats: { ...DEFAULT_PROFILE, themeColor: "#d32f2f" },
+        ats: {
+            ...DEFAULT_PROFILE,
+            themeColor: "#d32f2f",
+            ownedDlcs: Array.from({ length: 16 }, (_, i) => i + 1),
+        },
     },
 };
 

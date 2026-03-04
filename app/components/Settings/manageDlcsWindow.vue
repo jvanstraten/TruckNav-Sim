@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 const { settings, activeSettings, updateProfile } = useSettings();
 import { ets2Expansions } from "~/data/ets2/ets2Expansions";
+import { atsExpansions } from "~/data/ats/atsExpansions";
 
 defineProps<{ closePanel: () => void }>();
 
@@ -9,6 +10,12 @@ const loadedImages = ref<Record<number, boolean>>({});
 const onImageLoaded = (id: number) => {
     loadedImages.value[id] = true;
 };
+
+const currentExpansion = computed(() => {
+    return settings.value.selectedGame === "ets2"
+        ? ets2Expansions
+        : atsExpansions;
+});
 
 const toggleDlc = (id: number) => {
     const currentList = [...activeSettings.value.ownedDlcs];
@@ -29,7 +36,7 @@ const toggleDlc = (id: number) => {
     <div class="manage-dlcs-section">
         <div @click="closePanel" class="background-overlay"></div>
         <div class="manage-dlcs-window">
-            <div v-for="(dlc, id) in ets2Expansions" :key="id">
+            <div v-for="(dlc, id) in currentExpansion" :key="id">
                 <div
                     class="dlc"
                     @click="toggleDlc(Number(id))"
@@ -47,7 +54,7 @@ const toggleDlc = (id: number) => {
                             ></div>
 
                             <img
-                                :src="`/images/ets2-dlcs/${dlc.imagePath}`"
+                                :src="`/images/expansions/${settings.selectedGame}/${dlc.imagePath}`"
                                 :alt="dlc.name"
                                 class="dlc-cover"
                                 :class="{
