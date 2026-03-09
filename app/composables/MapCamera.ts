@@ -27,7 +27,7 @@ export const useMapCamera = (map: Ref<Map | null>) => {
         lastTime = timestamp;
 
         const dt = Math.min(deltaTime, 100);
-        const lerpFactor = 1 - Math.pow(0.9, dt / 16.666);
+        const lerpFactor = 1 - Math.pow(0.85, dt / 16.666);
 
         let iconMoved = false;
 
