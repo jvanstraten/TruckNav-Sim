@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 const props = defineProps<{ launchChooseGame: () => void }>();
 
-const { fetchIp, localIP } = useNetwork();
+const { fetchIp, fetchPort, localIP, localPort } = useNetwork();
 const { updateGlobal } = useSettings();
 
 const isServerRunning = ref(false);
@@ -32,6 +32,8 @@ const handleLocalLaunch = async () => {
 
 onMounted(async () => {
     await fetchIp();
+    await fetchPort();
+
     (window as any).electronAPI.setWindowSize(900, 600, false, false);
 
     checkStatus();
@@ -74,9 +76,9 @@ const toggleWindow = () => {
         </div>
 
         <div class="content">
-            <h2 class="title">Welcome to TruckerNav!</h2>
+            <h2 class="title">Welcome to TruckNav!</h2>
             <span class="subtitle"
-                >Below you’ll find instructions to set up the GPS on your
+                >Below you’ll find instructions to set up the app on your
                 phone.</span
             >
             <div class="steps">
@@ -86,10 +88,17 @@ const toggleWindow = () => {
                         Ensure your phone is connected to the same network as
                         your PC.
                     </li>
-                    <li>Open the GPS app on your phone.</li>
                     <li>
-                        Enter this IP to connect to the desktop telemetry:
-                        <strong class="localIp">{{ localIP }}</strong>
+                        Open the TruckNav app or web browser using the ip
+                        address below.
+                    </li>
+                    <li>
+                        TruckNav App:
+                        <strong class="localIp">{{ localIP }}</strong> |
+                        Browser:
+                        <strong class="localIp"
+                            >{{ localIP }}:{{ localPort }}</strong
+                        >
                     </li>
                 </ol>
             </div>
@@ -110,15 +119,33 @@ const toggleWindow = () => {
                         >
                     </div>
 
-                    <div v-if="isServerRunning" class="safe-to-close">
+                    <div
+                        v-if="isServerRunning"
+                        class="status-indicator is-safe"
+                    >
                         <Icon
                             name="mdi:check-circle-outline"
                             size="20"
                             class="icon"
                         />
                         <span
-                            >Safe to close this window! The server stays active
-                            in your taskbar.</span
+                            >Safe to close this window if connecting from
+                            TruckNav app!</span
+                        >
+                    </div>
+
+                    <div
+                        v-if="isServerRunning"
+                        class="status-indicator is-not-safe"
+                    >
+                        <Icon
+                            name="mdi:close-circle-outline"
+                            size="20"
+                            class="icon"
+                        />
+                        <span
+                            >Keep this window open if connecting from web
+                            browser!</span
                         >
                     </div>
                 </div>
