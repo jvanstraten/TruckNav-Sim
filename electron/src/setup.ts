@@ -27,7 +27,7 @@ const reloadWatcher = {
     watcher: null,
 };
 export function setupReloadWatcher(
-    electronCapacitorApp: ElectronCapacitorApp
+    electronCapacitorApp: ElectronCapacitorApp,
 ): void {
     reloadWatcher.watcher = chokidar
         .watch(join(app.getAppPath(), "app"), {
@@ -73,7 +73,7 @@ export class ElectronCapacitorApp {
     constructor(
         capacitorFileConfig: CapacitorElectronConfig,
         trayMenuTemplate?: (MenuItemConstructorOptions | MenuItem)[],
-        appMenuBarMenuTemplate?: (MenuItemConstructorOptions | MenuItem)[]
+        appMenuBarMenuTemplate?: (MenuItemConstructorOptions | MenuItem)[],
     ) {
         this.CapacitorFileConfig = capacitorFileConfig;
 
@@ -106,6 +106,10 @@ export class ElectronCapacitorApp {
         return this.MainWindow;
     }
 
+    getTray(): Tray | null {
+        return this.TrayIcon;
+    }
+
     getCustomURLScheme(): string {
         return this.customScheme;
     }
@@ -117,8 +121,8 @@ export class ElectronCapacitorApp {
                 "assets",
                 process.platform === "win32"
                     ? "TruckNavIconOutline.ico"
-                    : "TruckNavIconOutline.png"
-            )
+                    : "TruckNavIconOutline.png",
+            ),
         );
 
         this.mainWindowState = windowStateKeeper({
@@ -131,7 +135,7 @@ export class ElectronCapacitorApp {
             app.getAppPath(),
             "build",
             "src",
-            "preload.js"
+            "preload.js",
         );
 
         this.MainWindow = new BrowserWindow({
@@ -153,7 +157,7 @@ export class ElectronCapacitorApp {
 
         if (this.CapacitorFileConfig.backgroundColor) {
             this.MainWindow.setBackgroundColor(
-                this.CapacitorFileConfig.electron.backgroundColor
+                this.CapacitorFileConfig.electron.backgroundColor,
             );
         }
 
@@ -167,38 +171,32 @@ export class ElectronCapacitorApp {
             }
         });
 
-        // When the tray icon is enabled, setup the options.
-        if (this.CapacitorFileConfig.electron?.trayIconAndMenuEnabled) {
-            this.TrayIcon = new Tray(icon);
-            this.TrayIcon.on("double-click", () => {
-                if (this.MainWindow) {
-                    if (this.MainWindow.isVisible()) {
-                        this.MainWindow.hide();
-                    } else {
-                        this.MainWindow.show();
-                        this.MainWindow.focus();
-                    }
-                }
-            });
-            this.TrayIcon.on("click", () => {
-                if (this.MainWindow) {
-                    if (this.MainWindow.isVisible()) {
-                        this.MainWindow.hide();
-                    } else {
-                        this.MainWindow.show();
-                        this.MainWindow.focus();
-                    }
-                }
-            });
-            this.TrayIcon.setToolTip(app.getName());
-            this.TrayIcon.setContextMenu(
-                Menu.buildFromTemplate(this.TrayMenuTemplate)
-            );
-        }
+        // The tray is always enabled
+        const trayIconPath = join(
+            app.getAppPath(),
+            "assets",
+            process.platform === "win32"
+                ? "TruckNavIconOutline.ico"
+                : "TruckNavIconOutline.png",
+        );
+
+        this.TrayIcon = new Tray(nativeImage.createFromPath(trayIconPath));
+
+        this.TrayIcon.on("click", () => {
+            if (this.MainWindow) {
+                this.MainWindow.show();
+                this.MainWindow.focus();
+            }
+        });
+
+        this.TrayIcon.setToolTip(app.getName());
+        this.TrayIcon.setContextMenu(
+            Menu.buildFromTemplate(this.TrayMenuTemplate),
+        );
 
         // Setup the main manu bar at the top of our window.
         Menu.setApplicationMenu(
-            Menu.buildFromTemplate(this.AppMenuBarMenuTemplate)
+            Menu.buildFromTemplate(this.AppMenuBarMenuTemplate),
         );
 
         // If the splashscreen is enabled, show it first while the main window loads then switch it out for the main window, or just load the main window from the start.
@@ -208,7 +206,7 @@ export class ElectronCapacitorApp {
                     app.getAppPath(),
                     "assets",
                     this.CapacitorFileConfig.electron?.splashScreenImageName ??
-                        "splash.png"
+                        "splash.png",
                 ),
                 windowWidth: 400,
                 windowHeight: 400,
@@ -253,7 +251,7 @@ export class ElectronCapacitorApp {
                 }
                 CapElectronEventEmitter.emit(
                     "CAPELECTRON_DeeplinkListenerInitialized",
-                    ""
+                    "",
                 );
             }, 400);
         });

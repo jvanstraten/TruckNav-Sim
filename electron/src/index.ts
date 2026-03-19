@@ -32,8 +32,18 @@ unhandled();
 
 // Define our menu templates (these are optional)
 const trayMenuTemplate: (MenuItemConstructorOptions | MenuItem)[] = [
+    new MenuItem({
+        label: "Show App",
+        click: () => {
+            myCapacitorApp.getMainWindow().show();
+        },
+    }),
+
+    new MenuItem({ type: "separator" }),
+
     new MenuItem({ label: "Quit App", role: "quit" }),
 ];
+
 const appMenuBarMenuTemplate: (MenuItemConstructorOptions | MenuItem)[] = [
     { role: process.platform === "darwin" ? "appMenu" : "fileMenu" },
     { role: "viewMenu" },
@@ -75,13 +85,27 @@ if (electronIsDev) {
 
     // Security - Set Content-Security-Policy based on whether or not we are in dev mode.
     setupContentSecurityPolicy(myCapacitorApp.getCustomURLScheme());
+
     // Initialize our app, build windows, and load content.
     await myCapacitorApp.init();
+
     // Check for updates if we are in a packaged app.
     // autoUpdater.checkForUpdatesAndNotify();
+
+    const mainWindow = myCapacitorApp.getMainWindow() as any;
+
+    if (mainWindow) {
+        mainWindow.on("close", (event) => {
+            if (!(app as any).isQuitting) {
+                event.preventDefault();
+                mainWindow.hide();
+            }
+        });
+    }
 })();
 
 app.on("before-quit", function () {
+    (app as any).isQuitting = true;
     killTelemetry();
 });
 
