@@ -1,3 +1,4 @@
+import { Capacitor } from "@capacitor/core";
 import {
     getGameState,
     getJobState,
@@ -54,16 +55,17 @@ export function useEtsTelemetry() {
     const { isElectron, isWeb } = usePlatform();
     const { settings } = useSettings();
 
+    const isCapacitor = Capacitor.isNativePlatform();
+
     let speedSamples: number[] = [];
     const maxSamples = 120;
 
     function startTelemetry(onUpdate?: (data: TelemetryUpdate) => void) {
         if (socket) return;
 
-        const ip =
-            isElectron.value || isWeb.value
-                ? "127.0.0.1"
-                : settings.value.savedIP;
+        const ip = isCapacitor
+            ? settings.value.savedIP
+            : window.location.hostname;
         const url = `ws://${ip}:30001`;
 
         socket = new WebSocket(url);

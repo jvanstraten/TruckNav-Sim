@@ -1,4 +1,3 @@
-import { distance, lineString, nearestPointOnLine, point } from "@turf/turf";
 import maplibregl from "maplibre-gl";
 import { generateDestinationIcon } from "~/assets/utils/map/markers";
 import {
@@ -14,7 +13,7 @@ import {
 
 export const useRouteController = (
     map: Ref<maplibregl.Map | null>,
-    adjacency: Map<number, { to: number; weight: number; r: number }[]>,
+    adjacency: Map<number, any>,
     nodeCoords: Map<number, [number, number]>,
 ) => {
     const { getGameLocationName, getWorkerCityData } = useCityData();
@@ -87,16 +86,20 @@ export const useRouteController = (
         }
     }
 
-    function initWorkerData(nodesArray: any[], edgesArray: any[]) {
+    function initWorkerData(
+        nodesArray: any[],
+        graphBuffer: ArrayBuffer | null,
+        geometryBuffer: ArrayBuffer | null,
+    ) {
         if (!worker) return;
-
         const cityPayload = getWorkerCityData();
 
         worker.postMessage({
             type: "INIT_GRAPH",
             payload: {
                 nodes: nodesArray,
-                edges: edgesArray,
+                graphBuffer: graphBuffer,
+                geometryBuffer: geometryBuffer,
                 cities: cityPayload,
             },
         });
@@ -150,73 +153,6 @@ export const useRouteController = (
         }
     }
 
-    function getSnappedCoords(
-        truckCoords: [number, number],
-        truckHeading: number,
-    ): [number, number] {
-        isTruckInYard.value = isPositionInPrefab(truckCoords);
-
-        if (isTruckInYard.value) {
-            return truckCoords;
-        }
-
-        if (
-            isRouteActive.value &&
-            currentRoutePath.value &&
-            currentRoutePath.value.length > 1
-        ) {
-            const path = currentRoutePath.value;
-            const idx = currentRouteIndex.value;
-
-            let bestProj = truckCoords;
-            let minSqDist = Infinity;
-            let bestSegmentHeading = 0;
-
-            const searchLimit = Math.min(path.length - 1, idx + 4);
-            const startSearch = Math.max(0, idx - 1);
-
-            for (let i = startSearch; i < searchLimit; i++) {
-                const proj = projectPointToSegment(
-                    truckCoords,
-                    path[i]!,
-                    path[i + 1]!,
-                );
-                const distSq = getSquaredDist(truckCoords, proj);
-
-                if (distSq < minSqDist) {
-                    minSqDist = distSq;
-                    bestProj = proj;
-                    bestSegmentHeading = getBearing(path[i]!, path[i + 1]!);
-                }
-            }
-
-            const distKm = Math.sqrt(minSqDist) * 111;
-
-            let hDiff = Math.abs(truckHeading - bestSegmentHeading);
-            while (hDiff > 180) hDiff = 360 - hDiff;
-            const trueDiff = hDiff > 90 ? 180 - hDiff : hDiff;
-
-            if (distKm < 0.4 && trueDiff < 35) {
-                return bestProj;
-            }
-        }
-
-        const config = findBestStartConfiguration(truckCoords, truckHeading, 2);
-
-        if (!config || !config.projectedCoords) {
-            return truckCoords;
-        }
-
-        const distSq = getSquaredDist(truckCoords, config.projectedCoords);
-        const distKm = Math.sqrt(distSq) * 111;
-
-        if (distKm < 0.1) {
-            return config.projectedCoords;
-        }
-
-        return truckCoords;
-    }
-
     function calculateRouteInWorker(
         startId: number,
         possibleEnds: number[],
@@ -264,14 +200,14 @@ export const useRouteController = (
     function findBestStartConfiguration(
         truckCoords: [number, number],
         truckHeading: number,
-        _ignoredLimit: number = 20,
+        searchLimit: number = 50,
     ) {
         if (adjacency.size === 0 || nodeCoords.size === 0) {
             console.error("CRITICAL: Graph data is empty!");
             return null;
         }
 
-        const nearbyNodes = getClosestNodes(truckCoords, 5, 0.1);
+        const nearbyNodes = getClosestNodes(truckCoords, searchLimit, 0.1);
 
         if (nearbyNodes.length === 0) {
             return null;
@@ -311,7 +247,7 @@ export const useRouteController = (
                 const distKm = Math.sqrt(distSq) * 111;
 
                 const headingPenalty = Math.pow(trueDiff / 90, 2) * 0.1;
-                const directionPenalty = isOpposite ? 0.05 : 0;
+                const directionPenalty = isOpposite ? 0.5 : 0;
 
                 const score = distKm + headingPenalty + directionPenalty;
 
@@ -330,7 +266,7 @@ export const useRouteController = (
 
         if (bestEdge) return bestEdge;
 
-        const yardCandidates = getClosestNodes(truckCoords, 2, 0.3);
+        const yardCandidates = getClosestNodes(truckCoords, 10, 0.3);
         let closestNodeId: number | null = null;
         let minNodeDist = Infinity;
 
@@ -503,7 +439,7 @@ export const useRouteController = (
             const startConfig = findBestStartConfiguration(
                 truckCoords,
                 truckHeading,
-                10,
+                50,
             );
 
             if (!startConfig) return;
@@ -525,7 +461,7 @@ export const useRouteController = (
 
                 endNodeId.value = result.endId;
 
-                const frozenRawPath = Object.freeze(result.rawPath);
+                const frozenRawPath = Object.freeze(result.displayPath);
                 currentRoutePath.value = frozenRawPath as any;
 
                 routeStatsCache.value = result.stats;
@@ -584,7 +520,7 @@ export const useRouteController = (
         let bestIndex = currentRouteIndex.value;
         let minSqDist = Infinity;
 
-        const searchLimit = Math.min(path.length - 1, bestIndex + 50);
+        const searchLimit = Math.min(path.length - 1, bestIndex + 500);
         const startSearch = Math.max(0, bestIndex - 5);
 
         for (let i = startSearch; i < searchLimit; i++) {
@@ -691,7 +627,6 @@ export const useRouteController = (
         handleRouteClick,
         findBestStartConfiguration,
         updateRouteProgress,
-        getSnappedCoords,
         clearRouteState,
     };
 };

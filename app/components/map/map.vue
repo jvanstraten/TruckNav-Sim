@@ -65,14 +65,8 @@ const { isElectron, isMobile, isWeb } = usePlatform();
 //
 //
 // Graph manipulation
-const {
-    loading,
-    progress,
-    adjacency,
-    nodeCoords,
-    initializeGraphData,
-    getClosestNodes,
-} = useGraphSystem();
+const { loading, progress, adjacency, nodeCoords, initializeGraphData } =
+    useGraphSystem();
 
 //
 //
@@ -104,15 +98,12 @@ const {
     destroyWorker,
     isRouteActive,
     routeFound,
-    getSnappedCoords,
-    findBestStartConfiguration,
-    worker,
 } = useRouteController(map, adjacency, nodeCoords);
 
 //
 //
 // Settings Controller
-const { updateGlobal, activeSettings, settings } = useSettings();
+const { activeSettings, settings } = useSettings();
 
 let uiTimer: ReturnType<typeof setTimeout> | null = null;
 let routeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -282,8 +273,12 @@ onMounted(async () => {
             initMarker(initialTruckImg.src);
             const graphData = await initializeGraphData();
             if (!graphData) return;
-            const { nodes, edges } = graphData;
-            initWorkerData(nodes, edges);
+
+            initWorkerData(
+                graphData.nodes,
+                graphData.graphBuffer,
+                graphData.geometryBuffer,
+            );
 
             setupRouteLayer();
             initCameraListeners();
@@ -343,12 +338,7 @@ onUnmounted(() => {
 function onTelemetryUpdate() {
     if (!truckCoords.value || !map.value) return;
 
-    const snappedCoords = getSnappedCoords(
-        truckCoords.value,
-        truckHeading.value,
-    );
-
-    followTruck(snappedCoords, truckHeading.value);
+    followTruck(truckCoords.value, truckHeading.value);
 
     if (isRouteActive.value) {
         updateRouteProgress(

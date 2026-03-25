@@ -1,9 +1,5 @@
 import { MinHeap } from "~/assets/utils/routing/MinHeap";
-import {
-    getBearing,
-    getAngleDiff,
-    getSignedAngle,
-} from "~/assets/utils/map/maths";
+import { getBearing, getAngleDiff } from "~/assets/utils/map/maths";
 import { convertGeoToAts, convertGeoToEts2 } from "../map/converters";
 import type { GameType } from "~/types";
 
@@ -12,6 +8,9 @@ const MAX_NODES = 900000;
 const cache_costs = new Float64Array(MAX_NODES);
 const cache_previous = new Int32Array(MAX_NODES);
 const cache_visited = new Uint8Array(MAX_NODES);
+const cache_arrival_heading = new Float32Array(MAX_NODES);
+const cache_is_ferry = new Uint8Array(MAX_NODES);
+
 const openHeap = new MinHeap(50000);
 
 let cache_flatCoords: Float64Array | null = null;
@@ -71,37 +70,29 @@ function fastDistKm(
     return Math.sqrt(dx * dx + dy * dy);
 }
 
-function getHeading(x1: number, y1: number, x2: number, y2: number): number {
-    return Math.atan2(y2 - y1, x2 - x1);
-}
-
-function getRadianAngleDiff(a1: number, a2: number): number {
-    let diff = Math.abs(a1 - a2);
-    if (diff > Math.PI) {
-        diff = 2 * Math.PI - diff;
-    }
-    return diff;
-}
-
 export const calculateRoute = (
     start: number,
     possibleEnds: Set<number | undefined>,
     startHeading: number | null,
-    adjacency: Map<
-        number,
-        { to: number; weight: number; r: number; dlc: number }[]
-    >,
+    adjacency: Map<number, any[]>,
     nodeCoords: Map<number, [number, number]>,
     startType: "road" | "yard" = "road",
     ownedDlcs: number[],
     targetLocation?: [number, number],
-): { path: [number, number][]; endId: number } | null => {
+): {
+    path: [number, number][];
+    nodeSequence: number[];
+    endId: number;
+} | null => {
     ensureCoordCache(nodeCoords);
     const flatCoords = cache_flatCoords!;
 
     cache_costs.fill(Infinity);
     cache_previous.fill(-1);
     cache_visited.fill(0);
+    cache_arrival_heading.fill(0);
+    cache_is_ferry.fill(0);
+
     openHeap.clear();
 
     let destLng = 0,
@@ -129,7 +120,7 @@ export const calculateRoute = (
     const distKm = fastDistKm(startLng, startLat, destLng, destLat);
     const maxIterations = 70000 + distKm * 5000;
 
-    const HEURISTIC_SCALE = 2.0;
+    const HEURISTIC_SCALE = 1.0;
 
     const getHeuristic = (id: number) => {
         const nLng = flatCoords[id * 2]!;
@@ -152,6 +143,8 @@ export const calculateRoute = (
         const currentId = openHeap.pop();
         if (currentId === undefined) break;
 
+        const currentArrivalHeading = cache_arrival_heading[currentId]!;
+
         if (cache_visited[currentId] === 1) continue;
         cache_visited[currentId] = 1;
 
@@ -167,123 +160,51 @@ export const calculateRoute = (
         const cLng = flatCoords[currentId * 2]!;
         const cLat = flatCoords[currentId * 2 + 1]!;
         const prevId = cache_previous[currentId]!;
+        const ferryGraceCounter = cache_is_ferry[currentId];
 
         for (let i = 0; i < neighbors.length; i++) {
             const edge = neighbors[i]!;
 
             // DLC Check
-            const dlcId = edge.dlc || 0;
-            if (dlcId !== 0 && !ownedDlcs.includes(dlcId)) {
-                continue;
-            }
+            const dlcId = edge.requiredDlc || 0;
+            if (dlcId !== 0 && !ownedDlcs.includes(dlcId)) continue;
 
             const neighborId = edge.to;
             if (cache_visited[neighborId] === 1) continue;
 
             let stepCost = edge.weight || 1;
 
-            const nLng = flatCoords[neighborId * 2]!;
-            const nLat = flatCoords[neighborId * 2 + 1]!;
-
-            if (currentId === start && startHeading !== null) {
-                if (startType === "yard") {
-                    stepCost += 10;
+            if (!edge.isFerry && ferryGraceCounter === 0) {
+                if (currentId === start && startHeading !== null) {
+                    const nLng = flatCoords[neighborId * 2]!;
+                    const nLat = flatCoords[neighborId * 2 + 1]!;
                     const dir = getBearing([cLng, cLat], [nLng, nLat]);
                     const diff = getAngleDiff(startHeading, dir);
-                    if (diff > 75) stepCost += 10_000_000;
-                    else if (diff > 45) stepCost += 1000;
-                } else {
-                    const dir = getBearing([cLng, cLat], [nLng, nLat]);
-                    const diff = getAngleDiff(startHeading, dir);
-                    if (diff > 75) stepCost += 10_000_000;
-                    else if (diff > 45) stepCost += 1000;
-                }
-            } else if (prevId !== -1) {
-                let pLng = flatCoords[prevId * 2]!;
-                let pLat = flatCoords[prevId * 2 + 1]!;
 
-                const angle = getSignedAngle(
-                    [pLng, pLat],
-                    [cLng, cLat],
-                    [nLng, nLat],
-                );
-                const absAngle = Math.abs(angle);
+                    if (startType === "yard") {
+                        stepCost += 10;
+                        if (diff > 75) stepCost += 10_000_000;
+                        else if (diff > 45) stepCost += 1000;
+                    } else {
+                        if (diff > 75) stepCost += 10_000_000;
+                        else if (diff > 45) stepCost += 1000;
+                    }
+                } else if (
+                    prevId !== -1 &&
+                    currentId !== start &&
+                    edge.hOut !== undefined
+                ) {
+                    let diff = Math.abs(currentArrivalHeading - edge.hOut);
+                    if (diff > Math.PI) diff = 2 * Math.PI - diff;
 
-                if (edge.r === 2) {
-                    stepCost *= 1.1;
-                    if (angle < -105) stepCost += 100_000;
-                }
+                    if (diff > 2.35) {
+                        continue;
+                    }
 
-                if (edge.r !== 4) {
-                    if (absAngle > 105) {
-                        stepCost += Infinity;
-                    } else if (angle < -45) {
-                        stepCost += 2000;
-                    } else if (angle > 45) {
+                    if (diff > 1.0) {
                         stepCost += 500;
-                    } else if (absAngle > 10) {
-                        stepCost += 50;
-                    }
-
-                    let tempPrev = prevId;
-                    let traveledDist = 0;
-                    let maxSingleTurn = 0;
-
-                    const currentHeading = getHeading(cLng, cLat, nLng, nLat);
-                    let lastSegHeading = currentHeading;
-                    let uTurnDist = -1;
-
-                    for (let k = 0; k < 30; k++) {
-                        const grandPrev = cache_previous[tempPrev]!;
-                        if (grandPrev === -1) break;
-
-                        const tLng = flatCoords[tempPrev * 2]!;
-                        const tLat = flatCoords[tempPrev * 2 + 1]!;
-                        const gLng = flatCoords[grandPrev * 2]!;
-                        const gLat = flatCoords[grandPrev * 2 + 1]!;
-
-                        const segDist = fastDistKm(gLng, gLat, tLng, tLat);
-                        traveledDist += segDist;
-
-                        // Calculate heading of this historical segment
-                        const histHeading = getHeading(gLng, gLat, tLng, tLat);
-
-                        // Track the sharpest individual corner
-                        const turnAngle = getRadianAngleDiff(
-                            histHeading,
-                            lastSegHeading,
-                        );
-                        if (turnAngle > maxSingleTurn) {
-                            maxSingleTurn = turnAngle;
-                        }
-
-                        lastSegHeading = histHeading;
-
-                        // Check how much the overall heading has changed from the past to the future
-                        const diff = getRadianAngleDiff(
-                            histHeading,
-                            currentHeading,
-                        );
-
-                        // If we flipped ~160+ degrees (2.8 rad) AND havent recorded it yet
-                        if (diff > 2.8 && uTurnDist === -1) {
-                            uTurnDist = traveledDist;
-                        }
-
-                        // Looking back a certain distance
-                        if (traveledDist > 0.4) {
-                            break;
-                        }
-
-                        tempPrev = grandPrev;
-                    }
-
-                    if (uTurnDist !== -1) {
-                        if (maxSingleTurn > 1.2) {
-                            stepCost += Infinity;
-                        } else if (uTurnDist < 0.05) {
-                            stepCost += Infinity;
-                        }
+                    } else if (diff > 0.4) {
+                        stepCost += 1000;
                     }
                 }
             }
@@ -294,6 +215,17 @@ export const calculateRoute = (
             if (tentativeG < cache_costs[neighborId]!) {
                 cache_previous[neighborId] = currentId;
                 cache_costs[neighborId] = tentativeG;
+                cache_arrival_heading[neighborId] = edge.hIn || 0;
+
+                if (edge.isFerry) {
+                    cache_is_ferry[neighborId] = 5;
+                } else {
+                    cache_is_ferry[neighborId] = Math.max(
+                        0,
+                        ferryGraceCounter! - 1,
+                    );
+                }
+
                 openHeap.push(
                     neighborId,
                     tentativeG + getHeuristic(neighborId),
@@ -305,15 +237,17 @@ export const calculateRoute = (
     if (foundEndId === null) return null;
 
     const path: [number, number][] = [];
+    const nodeSequence: number[] = [];
     let curr: number = foundEndId;
 
     while (curr !== -1) {
         path.unshift([flatCoords[curr * 2]!, flatCoords[curr * 2 + 1]!]);
+        nodeSequence.unshift(curr);
         curr = cache_previous[curr]!;
         if (path.length > 20000) break;
     }
 
-    return { path, endId: foundEndId };
+    return { path, nodeSequence, endId: foundEndId };
 };
 
 export const mergeClosePoints = (
@@ -348,36 +282,6 @@ export const mergeClosePoints = (
     return result;
 };
 
-export function smoothPath(coords: [number, number][]): [number, number][] {
-    const len = coords.length;
-    if (len < 3) return coords;
-
-    const output = new Array((len - 1) * 2 + 2);
-
-    output[0] = coords[0];
-
-    let outIdx = 1;
-
-    for (let i = 0; i < len - 1; i++) {
-        const p0 = coords[i]!;
-        const p1 = coords[i + 1]!;
-
-        output[outIdx++] = [
-            0.75 * p0[0] + 0.25 * p1[0],
-            0.75 * p0[1] + 0.25 * p1[1],
-        ];
-
-        output[outIdx++] = [
-            0.25 * p0[0] + 0.75 * p1[0],
-            0.25 * p0[1] + 0.75 * p1[1],
-        ];
-    }
-
-    output[outIdx] = coords[len - 1];
-
-    return output;
-}
-
 export function buildRouteStatsCache(
     pathCoords: [number, number][],
     cities: SimpleCityNode[] | null,
@@ -395,10 +299,7 @@ export function buildRouteStatsCache(
 
     const baseCity = isAts ? 40 : 32;
     const citySpeed =
-        avgSpeed > 40
-            ? avgSpeed * 0.4 + baseCity * 0.6 // Cities are always slower
-            : baseCity;
-
+        avgSpeed > 40 ? avgSpeed * 0.4 + baseCity * 0.6 : baseCity;
     const speeds = { highway: highwaySpeed, city: citySpeed };
 
     const gamePoints = pathCoords.map((p) =>

@@ -40,6 +40,7 @@ const handleStart = () => {
             :disabled="!selectedGame"
             @click.prevent="handleStart"
             class="btn nav-btn"
+            autofocus
         >
             <span>Start Navigation</span>
             <Icon name="material-symbols:map-rounded" size="20" />
