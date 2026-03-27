@@ -22,7 +22,7 @@ export function convertEts2ToGeo(
     const ukScale = 0.75;
     const calaisBound = [-31100, -5500] as const;
 
-    if (x * ukScale < calaisBound[0] && y * ukScale < calaisBound[1]) {
+    if (gameX < -31100 && gameZ < -5500) {
         x = (x + calaisBound[0] / 2) * ukScale;
         y = (y + calaisBound[1] / 2) * ukScale;
     }
