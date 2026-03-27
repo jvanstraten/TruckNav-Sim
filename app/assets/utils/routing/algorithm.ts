@@ -250,6 +250,90 @@ export const calculateRoute = (
     return { path, nodeSequence, endId: foundEndId };
 };
 
+export const simplifyPath = (
+    points: [number, number][],
+    epsilon = 0.000005,
+): [number, number][] => {
+    if (points.length <= 2) return points;
+
+    const sqEpsilon = epsilon * epsilon;
+
+    const getSqDist = (
+        p: [number, number],
+        a: [number, number],
+        b: [number, number],
+    ) => {
+        let x = a[0],
+            y = a[1],
+            dx = b[0] - x,
+            dy = b[1] - y;
+        if (dx !== 0 || dy !== 0) {
+            let t = ((p[0] - x) * dx + (p[1] - y) * dy) / (dx * dx + dy * dy);
+            if (t > 1) {
+                x = b[0];
+                y = b[1];
+            } else if (t > 0) {
+                x += dx * t;
+                y += dy * t;
+            }
+        }
+        dx = p[0] - x;
+        dy = p[1] - y;
+        return dx * dx + dy * dy;
+    };
+
+    const simplifyRecursive = (
+        pts: [number, number][],
+        start: number,
+        end: number,
+        sqEpsilon: number,
+        result: [number, number][],
+    ) => {
+        let maxSqDist = sqEpsilon;
+        let index = -1;
+        for (let i = start + 1; i < end; i++) {
+            let d = getSqDist(pts[i]!, pts[start]!, pts[end]!);
+            if (d > maxSqDist) {
+                index = i;
+                maxSqDist = d;
+            }
+        }
+        if (index !== -1) {
+            simplifyRecursive(pts, start, index, sqEpsilon, result);
+            result.push(pts[index]!);
+            simplifyRecursive(pts, index, end, sqEpsilon, result);
+        }
+    };
+
+    const result = [points[0]!];
+    simplifyRecursive(points, 0, points.length - 1, sqEpsilon, result);
+    result.push(points[points.length - 1]!);
+    return result;
+};
+
+export const smoothPath = (
+    path: [number, number][],
+    iterations = 5,
+): [number, number][] => {
+    if (path.length < 3) return path;
+    let current = path;
+    for (let it = 0; it < iterations; it++) {
+        const smoothed: [number, number][] = [current[0]!];
+        for (let i = 1; i < current.length - 1; i++) {
+            const p = current[i - 1]!,
+                c = current[i]!,
+                n = current[i + 1]!;
+            smoothed.push([
+                p[0] * 0.25 + c[0] * 0.5 + n[0] * 0.25,
+                p[1] * 0.25 + c[1] * 0.5 + n[1] * 0.25,
+            ]);
+        }
+        smoothed.push(current[current.length - 1]!);
+        current = smoothed;
+    }
+    return current;
+};
+
 export const mergeClosePoints = (
     coords: [number, number][],
     minDistanceMeters = 5,

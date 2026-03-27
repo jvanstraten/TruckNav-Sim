@@ -5,6 +5,8 @@ import {
     buildRouteStatsCache,
     calculateRoute,
     type SimpleCityNode,
+    simplifyPath,
+    smoothPath,
 } from "~/assets/utils/routing/algorithm";
 
 let cityNodes: SimpleCityNode[] | null = null;
@@ -105,8 +107,11 @@ self.onmessage = async (e: MessageEvent) => {
             }
             displayPath.push(fullPath[fullPath.length - 1]!);
 
+            const simplified = simplifyPath(displayPath, 0.00004);
+            const finalSmoothedPath = smoothPath(simplified, 8);
+
             const statsCache = buildRouteStatsCache(
-                displayPath,
+                finalSmoothedPath,
                 cityNodes,
                 selectedGame,
                 sdkScale,
@@ -118,8 +123,8 @@ self.onmessage = async (e: MessageEvent) => {
                     type: "RESULT",
                     payload: {
                         ...result,
-                        rawPath: displayPath,
-                        displayPath: displayPath,
+                        rawPath: finalSmoothedPath,
+                        displayPath: finalSmoothedPath,
                         stats: statsCache,
                     },
                 },
