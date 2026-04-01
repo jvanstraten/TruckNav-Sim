@@ -52,7 +52,6 @@ let headingOffset = 0;
 let socket: WebSocket | null = null;
 
 export function useEtsTelemetry() {
-    const { isElectron, isWeb } = usePlatform();
     const { settings } = useSettings();
 
     const isCapacitor = Capacitor.isNativePlatform();
@@ -156,8 +155,11 @@ export function useEtsTelemetry() {
             fuel: fuel,
         });
 
-        const { hasActiveJob, destinationCity, destinationCompany } =
-            getJobState(data);
+        const {
+            hasActiveJob,
+            cityTarget: destinationCity,
+            companyTarget: destinationCompany,
+        } = getJobState(data, settings.value.selectedGame);
 
         Object.assign(jobState, {
             hasActiveJob: hasActiveJob,

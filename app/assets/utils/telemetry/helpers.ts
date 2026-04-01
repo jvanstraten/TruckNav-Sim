@@ -83,12 +83,48 @@ export function getNavigationState(data: TelemetryPacket) {
     return { fuel, speedLimit, restStoptime, restStopMinutes: totalMinutes };
 }
 
-export function getJobState(data: TelemetryPacket) {
+export function getJobState(data: TelemetryPacket, selectedGame: GameType) {
+    let companyTarget = "";
+    let cityTarget = "";
+    let trailerCoords: [number, number] = [0, 0];
+
     const hasActiveJob = data.specialEvents.onJob;
+
     const destinationCity = data.job.cityDestination;
     const destinationCompany = data.job.companyDestinationId;
 
-    return { hasActiveJob, destinationCity, destinationCompany };
+    const jobType = data.job.jobType;
+
+    const sourceCity = data.job.citySource;
+    const sourceCompany = data.job.companySourceId;
+
+    if (data.trailers[0]) {
+        const isTrailerAvailable =
+            data.trailers[0].position.y !== 0 &&
+            data.trailers[0].position.x !== 0;
+
+        const isTrailerAttached = data.trailers[0]?.attached;
+
+        if (jobType === "external_contracts" || jobType === "external_market") {
+            companyTarget =
+                isTrailerAvailable && !isTrailerAttached
+                    ? sourceCompany
+                    : destinationCompany;
+
+            cityTarget =
+                isTrailerAvailable && !isTrailerAttached
+                    ? sourceCity
+                    : destinationCity;
+        } else {
+            companyTarget = destinationCompany;
+            cityTarget = destinationCity;
+        }
+    } else {
+        companyTarget = destinationCompany;
+        cityTarget = destinationCity;
+    }
+
+    return { hasActiveJob, cityTarget, companyTarget, trailerCoords };
 }
 
 /**
