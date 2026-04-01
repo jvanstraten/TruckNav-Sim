@@ -3,6 +3,7 @@ import {
     convertGeoToEts2,
 } from "~/assets/utils/map/converters";
 import { type SimpleCityNode } from "~/assets/utils/routing/algorithm";
+import type { GameType } from "~/types";
 
 // --- Types ---
 interface GeoJsonProperties {
@@ -50,12 +51,20 @@ const realCompanyModData = shallowRef<RealCompanyModFallback | null>(null);
 
 const isLoaded = ref(false);
 const optimizedCityNodes = shallowRef<SimpleCityNode[]>([]);
+const loadedGame = ref<GameType | null>(null);
 
 export function useCityData() {
     const { settings } = useSettings();
 
     async function loadLocationData() {
-        if (isLoaded.value) return;
+        if (loadedGame.value === settings.value.selectedGame) return;
+
+        cityData.value = null;
+        villageData.value = null;
+        companiesData.value = null;
+        citiesFallbackData.value = null;
+        realCompanyModData.value = null;
+        optimizedCityNodes.value = [];
 
         try {
             if (settings.value.selectedGame === "ets2") {
@@ -64,11 +73,15 @@ export function useCityData() {
                     villagesRes,
                     companiesRes,
                     citiesFallbackRes,
+                    realCompanyModRes,
                 ] = await Promise.all([
                     fetch("/data/ets2/map-data/cities.geojson"),
                     fetch("/data/ets2/map-data/villages.geojson"),
                     fetch("/data/ets2/map-data/companies.geojson"),
                     fetch("/data/ets2/map-data/citiesCheck.json"),
+                    fetch(
+                        "/data/ets2/map-data/RealCompaniesModVanillaMapping.json",
+                    ),
                 ]);
 
                 if (citiesRes.ok) cityData.value = await citiesRes.json();
@@ -78,6 +91,8 @@ export function useCityData() {
                     companiesData.value = await companiesRes.json();
                 if (citiesFallbackRes.ok)
                     citiesFallbackData.value = await citiesFallbackRes.json();
+                if (realCompanyModRes.ok)
+                    realCompanyModData.value = await realCompanyModRes.json();
             } else if (settings.value.selectedGame == "ats") {
                 const [citiesRes, companiesRes, realCompanyModRes] =
                     await Promise.all([
@@ -99,8 +114,10 @@ export function useCityData() {
             optimizedCityNodes.value = [...cNodes!];
 
             isLoaded.value = true;
+            loadedGame.value = settings.value.selectedGame;
         } catch (e) {
             console.error("Failed to load map data:", e);
+            loadedGame.value = null;
         }
     }
 
