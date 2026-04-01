@@ -10,6 +10,10 @@ import {
     deleteMapLibreData,
     setMapLibreData,
 } from "~/assets/utils/map/helpers";
+import {
+    generateDirectionsList,
+    type DirectionStep,
+} from "~/assets/utils/routing/directions";
 
 export const useRouteController = (
     map: Ref<maplibregl.Map | null>,
@@ -44,6 +48,9 @@ export const useRouteController = (
 
     const currentRouteIndex = ref(0);
     const isWorkerReady = ref(false);
+
+    const fullRouteDirections = ref<DirectionStep[]>([]);
+    const nextTurnDistance = ref<number>(0);
 
     watch(
         () => activeSettings.value.themeColor,
@@ -121,36 +128,145 @@ export const useRouteController = (
         return [v[0] + t * (w[0] - v[0]), v[1] + t * (w[1] - v[1])];
     }
 
-    let lastPrefabCheckTime = 0;
-    let lastPrefabCheckResult = false;
-    function isPositionInPrefab(coords: [number, number]): boolean {
-        const now = Date.now();
-        if (now - lastPrefabCheckTime < 2000) {
-            return lastPrefabCheckResult;
+    function drawTurnArrows(
+        steps: DirectionStep[],
+        displayPath: [number, number][],
+    ) {
+        if (!map.value) return;
+
+        const linesFeatures = [];
+        const headsFeatures = [];
+
+        const ARROW_HEAD_OFFSET_M = 30;
+
+        const MAX_ARROWS_TO_SHOW = 2;
+        let arrowsDrawn = 0;
+
+        for (const step of steps) {
+            if (
+                ["depart", "destination", "straight", "ferry"].includes(
+                    step.type,
+                )
+            )
+                continue;
+
+            if (arrowsDrawn >= MAX_ARROWS_TO_SHOW) break;
+
+            let startIdx = -1;
+            let minStartDist = Infinity;
+            for (let i = 0; i < displayPath.length; i++) {
+                const distSq = getSquaredDist(displayPath[i]!, step.coords);
+                if (distSq < minStartDist) {
+                    minStartDist = distSq;
+                    startIdx = i;
+                }
+            }
+
+            let endIdx = startIdx;
+            if (step.exitCoords && startIdx !== -1) {
+                let minEndDist = Infinity;
+                const searchLimit = Math.min(
+                    displayPath.length,
+                    startIdx + 1000,
+                );
+                for (let i = startIdx; i < searchLimit; i++) {
+                    const distSq = getSquaredDist(
+                        displayPath[i]!,
+                        step.exitCoords,
+                    );
+                    if (distSq < minEndDist) {
+                        minEndDist = distSq;
+                        endIdx = i;
+                    }
+                }
+            }
+
+            if (startIdx !== -1 && endIdx !== -1 && endIdx >= startIdx) {
+                const arrowCoords: [number, number][] = [];
+
+                for (let i = startIdx; i <= endIdx; i++) {
+                    arrowCoords.push(displayPath[i]!);
+                }
+
+                let hIdx = endIdx;
+                let dFwd = 0;
+                let finalHeadPoint: [number, number] = displayPath[hIdx]!;
+
+                while (
+                    hIdx < displayPath.length - 1 &&
+                    dFwd < ARROW_HEAD_OFFSET_M
+                ) {
+                    const segDist =
+                        Math.sqrt(
+                            getSquaredDist(
+                                displayPath[hIdx]!,
+                                displayPath[hIdx + 1]!,
+                            ),
+                        ) * 111000;
+                    if (dFwd + segDist > ARROW_HEAD_OFFSET_M) {
+                        const ratio = (ARROW_HEAD_OFFSET_M - dFwd) / segDist;
+                        const p1 = displayPath[hIdx]!;
+                        const p2 = displayPath[hIdx + 1]!;
+                        finalHeadPoint = [
+                            p1[0] + (p2[0] - p1[0]) * ratio,
+                            p1[1] + (p2[1] - p1[1]) * ratio,
+                        ];
+                        dFwd = ARROW_HEAD_OFFSET_M;
+                    } else {
+                        dFwd += segDist;
+                        hIdx++;
+                        finalHeadPoint = displayPath[hIdx]!;
+                    }
+                }
+
+                if (dFwd > 0) {
+                    arrowCoords.push(finalHeadPoint);
+                }
+
+                // 5. Generate MapLibre features
+                if (arrowCoords.length >= 2) {
+                    linesFeatures.push({
+                        type: "Feature",
+                        geometry: {
+                            type: "LineString",
+                            coordinates: arrowCoords,
+                        },
+                        properties: {},
+                    });
+
+                    const pLast = arrowCoords[arrowCoords.length - 1]!;
+                    const pPrev = arrowCoords[arrowCoords.length - 2]!;
+                    const bearing = getBearing(pPrev, pLast);
+
+                    headsFeatures.push({
+                        type: "Feature",
+                        geometry: { type: "Point", coordinates: pLast },
+                        properties: { bearing },
+                    });
+
+                    // --- NEW: Register that we successfully drew an arrow ---
+                    arrowsDrawn++;
+                }
+            }
         }
-        lastPrefabCheckTime = now;
 
-        if (!map.value || !map.value.getLayer("prefab-zones")) {
-            lastPrefabCheckResult = false;
-            return false;
-        }
+        const lineSource = map.value.getSource(
+            "turn-arrows-line-source",
+        ) as maplibregl.GeoJSONSource;
+        const headSource = map.value.getSource(
+            "turn-arrows-head-source",
+        ) as maplibregl.GeoJSONSource;
 
-        try {
-            const screenPt = map.value.project(coords);
-            const bbox: [maplibregl.PointLike, maplibregl.PointLike] = [
-                [screenPt.x - 20, screenPt.y - 20],
-                [screenPt.x + 20, screenPt.y + 20],
-            ];
-
-            const features = map.value.queryRenderedFeatures(bbox, {
-                layers: ["prefab-zones"],
+        if (lineSource)
+            lineSource.setData({
+                type: "FeatureCollection",
+                features: linesFeatures as any,
             });
-            lastPrefabCheckResult = features.length > 0;
-            return lastPrefabCheckResult;
-        } catch (e) {
-            lastPrefabCheckResult = false;
-            return false;
-        }
+        if (headSource)
+            headSource.setData({
+                type: "FeatureCollection",
+                features: headsFeatures as any,
+            });
     }
 
     function calculateRouteInWorker(
@@ -417,6 +533,93 @@ export const useRouteController = (
                 map.value!.getCanvas().style.cursor = "";
             });
         }
+
+        if (!map.value.hasImage("turn-arrow-icon")) {
+            const arrowImg = new Image();
+            arrowImg.onload = () =>
+                map.value!.addImage("turn-arrow-icon", arrowImg);
+
+            arrowImg.src =
+                "data:image/svg+xml;charset=utf-8," +
+                encodeURIComponent(
+                    '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 20L12 16L22 20L12 2Z" fill="white" stroke="#1c1c1c" stroke-width="2" stroke-linejoin="round"/></svg>',
+                );
+        }
+
+        if (!map.value.getSource("turn-arrows-line-source")) {
+            map.value.addSource("turn-arrows-line-source", {
+                type: "geojson",
+                data: { type: "FeatureCollection", features: [] },
+            });
+
+            map.value.addLayer({
+                id: "turn-arrows-line-border",
+                type: "line",
+                source: "turn-arrows-line-source",
+                layout: { "line-join": "round", "line-cap": "round" },
+                paint: {
+                    "line-color": "#1c1c1c",
+                    "line-width": [
+                        "interpolate",
+                        ["linear"],
+                        ["zoom"],
+                        10,
+                        9,
+                        15,
+                        15,
+                    ],
+                },
+            });
+
+            map.value.addLayer({
+                id: "turn-arrows-line-inner",
+                type: "line",
+                source: "turn-arrows-line-source",
+                layout: { "line-join": "round", "line-cap": "round" },
+                paint: {
+                    "line-color": "#ffffff",
+                    "line-width": [
+                        "interpolate",
+                        ["linear"],
+                        ["zoom"],
+                        10,
+                        5.5,
+                        15,
+                        9.5,
+                    ],
+                },
+            });
+        }
+
+        if (!map.value.getSource("turn-arrows-head-source")) {
+            map.value.addSource("turn-arrows-head-source", {
+                type: "geojson",
+                data: { type: "FeatureCollection", features: [] },
+            });
+
+            map.value.addLayer({
+                id: "turn-arrows-head-layer",
+                type: "symbol",
+                source: "turn-arrows-head-source",
+                layout: {
+                    "icon-image": "turn-arrow-icon",
+                    "icon-size": [
+                        "interpolate",
+                        ["linear"],
+                        ["zoom"],
+                        10,
+                        0.83,
+                        15,
+                        1.33,
+                    ],
+                    "icon-rotation-alignment": "map",
+                    "icon-rotate": ["get", "bearing"],
+                    "icon-anchor": "center",
+                    "icon-allow-overlap": true,
+                    "icon-ignore-placement": true,
+                },
+            });
+        }
     }
 
     async function handleRouteClick(
@@ -484,6 +687,29 @@ export const useRouteController = (
                     clickCoords[1],
                 );
 
+                fullRouteDirections.value = generateDirectionsList(
+                    result.nodeSequence,
+                    result.nodeKms,
+                    result.sequenceManeuvers,
+                    result.sequenceExits,
+                    nodeCoords,
+                );
+
+                if (fullRouteDirections.value.length > 1) {
+                    const upcomingTurn = fullRouteDirections.value[1];
+                    if (
+                        upcomingTurn &&
+                        upcomingTurn.cumulativeKm !== undefined
+                    ) {
+                        const distKm = +upcomingTurn.cumulativeKm.toFixed(1);
+                        nextTurnDistance.value = Math.max(0, distKm);
+                    }
+                } else {
+                    nextTurnDistance.value = 0;
+                }
+
+                drawTurnArrows(fullRouteDirections.value, result.displayPath);
+
                 routeFound.value = true;
                 currentRouteIndex.value = 0;
                 updateProfile("lastDestination", savedDestination.value);
@@ -537,10 +763,74 @@ export const useRouteController = (
         }
 
         currentRouteIndex.value = bestIndex;
-        const now = Date.now();
-        if (now - lastRecalcTime.value < 5000) return;
 
         let activeThreshold = DEVIATION_THRESHOLD_SQ;
+
+        const distToEndSq = getSquaredDist(truckCoords, path[path.length - 1]!);
+        if (distToEndSq < 0.00005) {
+            clearRouteState();
+            return;
+        }
+
+        const lastIdx = (path.length - 1) * 2;
+        const currentIdx = bestIndex * 2;
+
+        const totalKm = cache[lastIdx]!;
+        const totalHours = cache[lastIdx + 1]!;
+
+        const currentKm = cache[currentIdx]!;
+        const currentHours = cache[currentIdx + 1]!;
+
+        const remKm = totalKm - currentKm;
+        const remHours = totalHours - currentHours;
+        routeDistance.value = Math.round(remKm);
+
+        if (remHours > 0) {
+            const h = Math.floor(remHours);
+            const m = Math.round((remHours - h) * 60);
+            routeEta.value = `${h}h ${m}min`;
+        } else {
+            routeEta.value = "Arriving...";
+        }
+
+        if (fullRouteDirections.value.length > 1) {
+            const upcomingTurn = fullRouteDirections.value[1];
+
+            if (upcomingTurn && upcomingTurn.cumulativeKm !== undefined) {
+                // 1. Keep visual distance calculating to the START of the turn (Arrow Tail)
+                const distKm = upcomingTurn.cumulativeKm - currentKm;
+                const distRounded = +distKm.toFixed(1);
+
+                nextTurnDistance.value = Math.max(0, distRounded);
+
+                // 2. Base the removal threshold on the END of the turn (Arrow Head)
+                const targetExitKm =
+                    upcomingTurn.exitCumulativeKm !== undefined
+                        ? upcomingTurn.exitCumulativeKm
+                        : upcomingTurn.cumulativeKm;
+
+                const distToExit = targetExitKm - currentKm;
+                const threshold =
+                    upcomingTurn.type === "destination" ? 0.02 : 0.05;
+
+                // Shift the array ONLY when we pass the Head of the arrow
+                if (distToExit < threshold) {
+                    fullRouteDirections.value.shift();
+
+                    if (currentRoutePath.value) {
+                        drawTurnArrows(
+                            fullRouteDirections.value,
+                            currentRoutePath.value,
+                        );
+                    }
+                }
+            }
+        } else {
+            nextTurnDistance.value = 0;
+        }
+
+        const now = Date.now();
+        if (now - lastRecalcTime.value < 5000) return;
 
         if (isTruckInYard.value) {
             activeThreshold = 0.05;
@@ -567,34 +857,6 @@ export const useRouteController = (
                 return;
             }
         }
-
-        const distToEndSq = getSquaredDist(truckCoords, path[path.length - 1]!);
-        if (distToEndSq < 0.00005) {
-            clearRouteState();
-            return;
-        }
-
-        const lastIdx = (path.length - 1) * 2;
-        const currentIdx = bestIndex * 2;
-
-        const totalKm = cache[lastIdx]!;
-        const totalHours = cache[lastIdx + 1]!;
-
-        const currentKm = cache[currentIdx]!;
-        const currentHours = cache[currentIdx + 1]!;
-
-        const remKm = totalKm - currentKm;
-        const remHours = totalHours - currentHours;
-
-        routeDistance.value = Math.round(remKm);
-
-        if (remHours > 0) {
-            const h = Math.floor(remHours);
-            const m = Math.round((remHours - h) * 60);
-            routeEta.value = `${h}h ${m}min`;
-        } else {
-            routeEta.value = "Arriving...";
-        }
     };
 
     function clearRouteState() {
@@ -602,13 +864,19 @@ export const useRouteController = (
 
         deleteMapLibreData(map.value, "route-line");
         deleteMapLibreData(map.value, "destination-source");
+        deleteMapLibreData(map.value, "turn-arrows-line-source");
+        deleteMapLibreData(map.value, "turn-arrows-head-source");
 
         isRouteActive.value = false;
         endNodeId.value = null;
         currentRoutePath.value = null;
         savedDestination.value = null;
         isYardStart.value = false;
+        fullRouteDirections.value = [];
         updateProfile("lastDestination", null);
+
+        nextTurnDistance.value = 0;
+        lastMathPos.value = null;
     }
 
     return {
@@ -621,6 +889,8 @@ export const useRouteController = (
         currentRoutePath,
         isWorkerReady,
         isRouteActive,
+        fullRouteDirections,
+        nextTurnDistance,
         initWorkerData,
         destroyWorker,
         setupRouteLayer,

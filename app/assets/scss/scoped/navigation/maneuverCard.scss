@@ -1,0 +1,47 @@
+.card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+
+    position: absolute;
+    top: calc($game-info-bar-height + 1.8rem);
+    left: 50%;
+    transform: translate(-50%, 0);
+
+    width: 65%;
+    height: 118px;
+
+    background-color: rgb(38, 52, 68, 0.95);
+    border: 1px solid $secondaryColor;
+    border-radius: 8px;
+
+    backdrop-filter: blur(2px);
+
+    font-size: 1.7rem;
+}
+
+.turn-directions {
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2.1rem;
+    width: 100%;
+    padding: 0.8rem 1.6rem;
+    background-color: rgba($color: #000000, $alpha: 0.15);
+}
+
+.direction-arrow {
+    width: 32px;
+    height: 32px;
+}
+
+.turn-info {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.23;
+    margin-bottom: 0.4rem;
+    padding: 0.6rem 1.4rem;
+}

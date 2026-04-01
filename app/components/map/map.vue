@@ -98,6 +98,8 @@ const {
     destroyWorker,
     isRouteActive,
     routeFound,
+    fullRouteDirections,
+    nextTurnDistance,
 } = useRouteController(map, adjacency, nodeCoords);
 
 //
@@ -438,6 +440,15 @@ const toggleSettingsPanel = () => {
                             :onClick="toggleSettingsPanel"
                         />
                     </div>
+
+                    <ManeuverCard
+                        v-if="isRouteActive && fullRouteDirections.length > 0"
+                        :upcoming-turns="fullRouteDirections"
+                        :distance-to-next-turn="nextTurnDistance"
+                        :next-instruction="
+                            fullRouteDirections[1]?.text || 'Follow Route'
+                        "
+                    />
 
                     <NotificationGeneral
                         :icon-name="

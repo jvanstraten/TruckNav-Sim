@@ -48,7 +48,11 @@ function calculatePolylineDistance(coords: [number, number][]): number {
 }
 
 function calculateHeading(p0: [number, number], p1: [number, number]) {
-    return Math.atan2(p1[1] - p0[1], p1[0] - p0[0]);
+    // p[0] is Lon, p[1] is Lat
+    const latRad = p0[1] * (Math.PI / 180);
+    // Multiply longitude diff by cos(lat) to fix aspect ratio distortion
+    const xDiff = (p1[0] - p0[0]) * Math.cos(latRad);
+    return Math.atan2(p1[1] - p0[1], xDiff);
 }
 
 async function packData(
@@ -93,6 +97,9 @@ async function packData(
     let geomPointer = 0;
     let edgeCount = 0;
 
+    const prefabUidToInt = new Map<string, number>();
+    let nextPrefabId = 1;
+
     for (const feature of logicData.features as Feature[]) {
         const props = feature.properties;
         const uStr = props.u;
@@ -102,6 +109,16 @@ async function packData(
 
         const uInt = uidToInt.get(uStr)!;
         const vInt = uidToInt.get(vStr)!;
+
+        const vPrefabUid = props.v_prefab || "";
+        let vPrefabId = 0;
+
+        if (vPrefabUid !== "") {
+            if (!prefabUidToInt.has(vPrefabUid)) {
+                prefabUidToInt.set(vPrefabUid, nextPrefabId++);
+            }
+            vPrefabId = prefabUidToInt.get(vPrefabUid)!;
+        }
 
         const visualKey = `${uStr}_${vStr}`;
         const visualKeyRev = `${vStr}_${uStr}`;
@@ -129,39 +146,8 @@ async function packData(
             geomPointer += 2;
         }
 
-        let hIn: number;
-        let hOut: number;
-        if (fromPrefab) {
-            let firstPoint = coords[0];
-            let nextPoint = coords[1];
-            let idxStart = 1;
-
-            while (
-                firstPoint[0] === nextPoint[0] &&
-                firstPoint[1] === nextPoint[1] &&
-                idxStart < coords.length - 1
-            ) {
-                idxStart++;
-                nextPoint = coords[idxStart];
-            }
-            hOut = calculateHeading(firstPoint, nextPoint);
-
-            let lastPoint = coords[coords.length - 1];
-            let secondLastPoint = coords[coords.length - 2];
-            let idxEnd = coords.length - 2;
-            while (
-                lastPoint[0] === secondLastPoint[0] &&
-                lastPoint[1] === secondLastPoint[1] &&
-                idxEnd > 0
-            ) {
-                idxEnd--;
-                secondLastPoint = coords[idxEnd];
-            }
-            hIn = calculateHeading(secondLastPoint, lastPoint);
-        } else {
-            hOut = props.hOut || 0.0;
-            hIn = props.hIn || 0.0;
-        }
+        const hOut = props.hOut || 0.0;
+        const hIn = props.hIn || 0.0;
 
         const isFerryRaw = props.isFerry;
         const isFerry =
@@ -177,7 +163,9 @@ async function packData(
             }
         }
 
-        const requiredDlc = props.required_dlc;
+        const requiredDlc = props.required_dlc || 0;
+        const maneuverType = props.maneuver_type || 0;
+        const exitNumber = props.exit_number || 0;
 
         graphData.push(
             uInt, // 0: Start node
@@ -187,8 +175,11 @@ async function packData(
             hOut, // 4: Departure heading
             isFerry, // 5: Ferry flag
             requiredDlc, // 6: Required DLC Integer
-            startIndex, // 7: Pointer to geometry array
-            pointCount, // 8: Number of [lng, lat] pairs
+            vPrefabId, // 7: Prefab integer ID
+            startIndex, // 8: Pointer to geometry array
+            pointCount, // 9: Number of [lng, lat] pairs
+            maneuverType, // 10: Maneuver id
+            exitNumber, // 11: Roundabout exit number (0 if not roundabout)
         );
 
         edgeCount++;

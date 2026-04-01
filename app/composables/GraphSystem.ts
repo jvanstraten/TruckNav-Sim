@@ -76,18 +76,32 @@ export function useGraphSystem() {
                 { id: number; lng: number; lat: number }
             >();
 
-            // Stride is 8: [u, v, weight, hIn, hOut, isFerry, startIndex, pointCount]
-            for (let i = 0; i < graphF32.length; i += 9) {
+            // Stride is 12: [u, v, weight, hIn, hOut, isFerry, startIndex, pointCount]
+            for (let i = 0; i < graphF32.length; i += 12) {
                 const u = graphF32[i]!;
                 const v = graphF32[i + 1]!;
                 const weight = graphF32[i + 2];
-                const startIndex = graphF32[i + 7]!;
-                const pointCount = graphF32[i + 8]!;
+                const hIn = graphF32[i + 3];
+                const hOut = graphF32[i + 4];
+                const isFerry = graphF32[i + 5];
+                const requiredDlc = graphF32[i + 6];
+                const vPrefabId = graphF32[i + 7];
+                const startIndex = graphF32[i + 8]!;
+                const pointCount = graphF32[i + 9]!;
+                const maneuverType = graphF32[i + 10]!;
+                const exitNumber = graphF32[i + 11]!;
 
                 if (!adjacency.has(u)) adjacency.set(u, []);
                 adjacency.get(u)!.push({
                     to: v,
                     weight: weight,
+                    hIn: hIn,
+                    hOut: hOut,
+                    isFerry: isFerry,
+                    requiredDlc: requiredDlc,
+                    vPrefabId: vPrefabId,
+                    maneuverType,
+                    exitNumber,
                 });
 
                 if (!uniqueNodes.has(u)) {

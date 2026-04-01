@@ -3,17 +3,23 @@ import { getBearing, getAngleDiff } from "~/assets/utils/map/maths";
 import { convertGeoToAts, convertGeoToEts2 } from "../map/converters";
 import type { GameType } from "~/types";
 
-const MAX_NODES = 900000;
+// Increased size to handle Directed Edges instead of Nodes
+const MAX_EDGES = 4000000;
 
-const cache_costs = new Float64Array(MAX_NODES);
-const cache_previous = new Int32Array(MAX_NODES);
-const cache_visited = new Uint8Array(MAX_NODES);
-const cache_arrival_heading = new Float32Array(MAX_NODES);
-const cache_is_ferry = new Uint8Array(MAX_NODES);
+const cache_costs = new Float64Array(MAX_EDGES);
+const cache_previous = new Int32Array(MAX_EDGES);
+const cache_visited = new Uint8Array(MAX_EDGES);
+const cache_is_ferry = new Uint8Array(MAX_EDGES);
+
+const edge_target = new Int32Array(MAX_EDGES);
+const edge_source = new Int32Array(MAX_EDGES);
+const edge_hIn = new Float32Array(MAX_EDGES);
 
 const openHeap = new MinHeap(50000);
 
 let cache_flatCoords: Float64Array | null = null;
+let isEdgesMapped = false;
+let globalNextEdgeId = 0;
 
 export interface SimpleCityNode {
     x: number; // Game X (Converted from Lng)
@@ -24,7 +30,7 @@ export interface SimpleCityNode {
 function ensureCoordCache(nodeCoords: Map<number, [number, number]>) {
     if (cache_flatCoords && cache_flatCoords.length > 0) return;
 
-    cache_flatCoords = new Float64Array(MAX_NODES * 2);
+    cache_flatCoords = new Float64Array(900000 * 2);
 
     for (const [id, [lng, lat]] of nodeCoords) {
         if (id * 2 + 1 < cache_flatCoords.length) {
@@ -32,6 +38,22 @@ function ensureCoordCache(nodeCoords: Map<number, [number, number]>) {
             cache_flatCoords[id * 2 + 1] = lat;
         }
     }
+}
+
+function ensureEdgesMapped(adjacency: Map<number, any[]>) {
+    if (isEdgesMapped) return;
+    globalNextEdgeId = 0;
+
+    for (const [u, edges] of adjacency.entries()) {
+        for (const edge of edges) {
+            const eId = globalNextEdgeId++;
+            edge.edgeId = eId;
+            edge_target[eId] = edge.to;
+            edge_source[eId] = u;
+            edge_hIn[eId] = edge.hIn || 0;
+        }
+    }
+    isEdgesMapped = true;
 }
 
 export function getScaleMultiplier(
@@ -85,13 +107,16 @@ export const calculateRoute = (
     endId: number;
 } | null => {
     ensureCoordCache(nodeCoords);
+    ensureEdgesMapped(adjacency);
+
     const flatCoords = cache_flatCoords!;
 
-    cache_costs.fill(Infinity);
-    cache_previous.fill(-1);
-    cache_visited.fill(0);
-    cache_arrival_heading.fill(0);
-    cache_is_ferry.fill(0);
+    const START_EDGE_ID = globalNextEdgeId;
+
+    cache_costs.fill(Infinity, 0, START_EDGE_ID + 1);
+    cache_previous.fill(-1, 0, START_EDGE_ID + 1);
+    cache_visited.fill(0, 0, START_EDGE_ID + 1);
+    cache_is_ferry.fill(0, 0, START_EDGE_ID + 1);
 
     openHeap.clear();
 
@@ -130,56 +155,69 @@ export const calculateRoute = (
         return Math.sqrt(dx * dx + dy * dy) * 100 * HEURISTIC_SCALE;
     };
 
-    cache_costs[start] = 0;
-    openHeap.push(start, 0);
+    cache_costs[START_EDGE_ID] = 0;
+    openHeap.push(START_EDGE_ID, 0);
 
-    let foundEndId: number | null = null;
+    let foundEndEdgeId: number | null = null;
     let iterations = 0;
 
     while (openHeap.size() > 0) {
         iterations++;
         if (iterations > maxIterations) return null;
 
-        const currentId = openHeap.pop();
-        if (currentId === undefined) break;
+        const currentEdgeId = openHeap.pop();
+        if (currentEdgeId === undefined) break;
 
-        const currentArrivalHeading = cache_arrival_heading[currentId]!;
+        if (cache_visited[currentEdgeId] === 1) continue;
+        cache_visited[currentEdgeId] = 1;
 
-        if (cache_visited[currentId] === 1) continue;
-        cache_visited[currentId] = 1;
+        const currentId =
+            currentEdgeId === START_EDGE_ID
+                ? start
+                : edge_target[currentEdgeId]!;
 
         if (possibleEnds.has(currentId)) {
-            foundEndId = currentId;
+            foundEndEdgeId = currentEdgeId;
             break;
         }
 
-        const currentG = cache_costs[currentId]!;
+        const currentArrivalHeading =
+            currentEdgeId === START_EDGE_ID ? 0 : edge_hIn[currentEdgeId];
+        const prevId =
+            currentEdgeId === START_EDGE_ID ? -1 : edge_source[currentEdgeId];
+        const currentG = cache_costs[currentEdgeId]!;
+
         const neighbors = adjacency.get(currentId);
         if (!neighbors) continue;
 
         const cLng = flatCoords[currentId * 2]!;
         const cLat = flatCoords[currentId * 2 + 1]!;
-        const prevId = cache_previous[currentId]!;
-        const ferryGraceCounter = cache_is_ferry[currentId];
+        const ferryGraceCounter = cache_is_ferry[currentEdgeId];
 
         for (let i = 0; i < neighbors.length; i++) {
             const edge = neighbors[i]!;
+            const neighborEdgeId = edge.edgeId;
 
             // DLC Check
             const dlcId = edge.requiredDlc || 0;
             if (dlcId !== 0 && !ownedDlcs.includes(dlcId)) continue;
 
-            const neighborId = edge.to;
-            if (cache_visited[neighborId] === 1) continue;
+            if (cache_visited[neighborEdgeId] === 1) continue;
+
+            const neighborNodeId = edge.to;
+
+            if (prevId !== -1 && neighborNodeId === prevId) {
+                continue;
+            }
 
             let stepCost = edge.weight || 1;
 
             if (!edge.isFerry && ferryGraceCounter === 0) {
-                if (currentId === start && startHeading !== null) {
-                    const nLng = flatCoords[neighborId * 2]!;
-                    const nLat = flatCoords[neighborId * 2 + 1]!;
+                if (currentEdgeId === START_EDGE_ID && startHeading !== null) {
+                    const nLng = flatCoords[neighborNodeId * 2]!;
+                    const nLat = flatCoords[neighborNodeId * 2 + 1]!;
                     const dir = getBearing([cLng, cLat], [nLng, nLat]);
-                    const diff = getAngleDiff(startHeading, dir);
+                    const diff = Math.abs(getAngleDiff(startHeading, dir));
 
                     if (startType === "yard") {
                         stepCost += 10;
@@ -190,21 +228,19 @@ export const calculateRoute = (
                         else if (diff > 45) stepCost += 1000;
                     }
                 } else if (
-                    prevId !== -1 &&
-                    currentId !== start &&
+                    currentEdgeId !== START_EDGE_ID &&
                     edge.hOut !== undefined
                 ) {
-                    let diff = Math.abs(currentArrivalHeading - edge.hOut);
+                    let diff = Math.abs(currentArrivalHeading! - edge.hOut);
                     if (diff > Math.PI) diff = 2 * Math.PI - diff;
 
-                    if (diff > 2.35) {
-                        continue;
-                    }
-
-                    if (diff > 1.0) {
-                        stepCost += 500;
-                    } else if (diff > 0.4) {
-                        stepCost += 1000;
+                    if (edge.maneuverType === 3) {
+                        if (diff > 1.0) stepCost += 50;
+                    } else {
+                        if (diff > 2.8) stepCost += 100_000;
+                        else if (diff > 1.5) stepCost += 10_000;
+                        else if (diff > 1.0) stepCost += 1000;
+                        else if (diff > 0.4) stepCost += 500;
                     }
                 }
             }
@@ -212,47 +248,54 @@ export const calculateRoute = (
             if (stepCost < 1) stepCost = 1;
             const tentativeG = currentG + stepCost;
 
-            if (tentativeG < cache_costs[neighborId]!) {
-                cache_previous[neighborId] = currentId;
-                cache_costs[neighborId] = tentativeG;
-                cache_arrival_heading[neighborId] = edge.hIn || 0;
+            if (tentativeG < cache_costs[neighborEdgeId]!) {
+                cache_previous[neighborEdgeId] = currentEdgeId;
+                cache_costs[neighborEdgeId] = tentativeG;
 
                 if (edge.isFerry) {
-                    cache_is_ferry[neighborId] = 5;
+                    cache_is_ferry[neighborEdgeId] = 5;
                 } else {
-                    cache_is_ferry[neighborId] = Math.max(
+                    cache_is_ferry[neighborEdgeId] = Math.max(
                         0,
                         ferryGraceCounter! - 1,
                     );
                 }
 
                 openHeap.push(
-                    neighborId,
-                    tentativeG + getHeuristic(neighborId),
+                    neighborEdgeId,
+                    tentativeG + getHeuristic(neighborNodeId),
                 );
             }
         }
     }
 
-    if (foundEndId === null) return null;
+    if (foundEndEdgeId === null) return null;
 
     const path: [number, number][] = [];
     const nodeSequence: number[] = [];
-    let curr: number = foundEndId;
+    let currEdgeId: number = foundEndEdgeId;
 
-    while (curr !== -1) {
-        path.unshift([flatCoords[curr * 2]!, flatCoords[curr * 2 + 1]!]);
-        nodeSequence.unshift(curr);
-        curr = cache_previous[curr]!;
+    while (currEdgeId !== START_EDGE_ID && currEdgeId !== -1) {
+        const cId = edge_target[currEdgeId]!;
+        path.unshift([flatCoords[cId * 2]!, flatCoords[cId * 2 + 1]!]);
+        nodeSequence.unshift(cId);
+        currEdgeId = cache_previous[currEdgeId]!;
         if (path.length > 20000) break;
     }
 
-    return { path, nodeSequence, endId: foundEndId };
+    path.unshift([flatCoords[start * 2]!, flatCoords[start * 2 + 1]!]);
+    nodeSequence.unshift(start);
+
+    return {
+        path,
+        nodeSequence,
+        endId: nodeSequence[nodeSequence.length - 1]!,
+    };
 };
 
 export const simplifyPath = (
     points: [number, number][],
-    epsilon = 0.000005,
+    epsilon = 0.000002,
 ): [number, number][] => {
     if (points.length <= 2) return points;
 
@@ -336,7 +379,7 @@ export const smoothPath = (
 
 export const mergeClosePoints = (
     coords: [number, number][],
-    minDistanceMeters = 5,
+    minDistanceMeters = 8,
 ): [number, number][] => {
     if (coords.length < 2) return coords;
     const result: [number, number][] = [];
