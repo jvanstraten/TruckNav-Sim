@@ -18,6 +18,7 @@ export interface AppSettingsState {
         ets2: GameProfile;
         ats: GameProfile;
     };
+    hasTurnNavigation: boolean;
 }
 
 const DEFAULT_PROFILE: GameProfile = {
@@ -40,6 +41,7 @@ const DEFAULT_SETTINGS: AppSettingsState = {
             units: "imperial",
         },
     },
+    hasTurnNavigation: true,
 };
 
 const STORAGE_KEY = "truck-nav-settings";

@@ -709,7 +709,12 @@ export const useRouteController = (
                     nextTurnDistance.value = 0;
                 }
 
-                drawTurnArrows(fullRouteDirections.value, result.displayPath);
+                if (settings.value.hasTurnNavigation) {
+                    drawTurnArrows(
+                        fullRouteDirections.value,
+                        result.displayPath,
+                    );
+                }
 
                 routeFound.value = true;
                 currentRouteIndex.value = 0;
@@ -818,7 +823,10 @@ export const useRouteController = (
                 if (distToExit < threshold) {
                     fullRouteDirections.value.shift();
 
-                    if (currentRoutePath.value) {
+                    if (
+                        currentRoutePath.value &&
+                        settings.value.hasTurnNavigation
+                    ) {
                         drawTurnArrows(
                             fullRouteDirections.value,
                             currentRoutePath.value,

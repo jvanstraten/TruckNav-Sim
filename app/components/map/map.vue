@@ -448,7 +448,7 @@ const onCancelRoute = () => {
                     </div>
 
                     <ManeuverCard
-                        v-show="isNavigating"
+                        v-show="isNavigating && settings.hasTurnNavigation"
                         :upcoming-turns="fullRouteDirections"
                         :distance-to-next-turn="nextTurnDistance"
                         :next-instruction="

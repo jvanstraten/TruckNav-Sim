@@ -2,12 +2,15 @@
 import { ets2Expansions } from "~/data/ets2/ets2Expansions";
 import { atsExpansions } from "~/data/ats/atsExpansions";
 
-const { settings, activeSettings, updateProfile } = useSettings();
+const { settings, activeSettings, updateProfile, updateGlobal } = useSettings();
 
 const props = defineProps<{ closePanel: () => void }>();
 
 const isDlcPanelOpened = ref(false);
 const isMetric = computed(() => activeSettings.value.units === "metric");
+const hasGuidedNavigation = computed(
+    () => settings.value.hasTurnNavigation === true,
+);
 
 const selectedExpansion = computed(() => {
     return settings.value.selectedGame === "ets2"
@@ -21,6 +24,10 @@ const toggleDlcPanel = () => {
 
 function toggleUnits() {
     updateProfile("units", isMetric.value ? "imperial" : "metric");
+}
+
+function toggleGuidedNavigation() {
+    updateGlobal("hasTurnNavigation", hasGuidedNavigation.value ? false : true);
 }
 </script>
 
@@ -78,6 +85,7 @@ function toggleUnits() {
                 <Icon name="lucide:ruler" size="24" />
                 <p>Units</p>
             </div>
+
             <div class="segmented-control" @click="toggleUnits">
                 <button class="segment-btn" :class="{ active: isMetric }">
                     <span class="label">Metric</span>
@@ -85,6 +93,32 @@ function toggleUnits() {
 
                 <button class="segment-btn" :class="{ active: !isMetric }">
                     <span class="label">Imperial</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="option setting">
+            <div class="option-title">
+                <Icon
+                    name="material-symbols:roundabout-right-rounded"
+                    size="24"
+                />
+                <p>Guided Navigation</p>
+            </div>
+
+            <div class="segmented-control" @click="toggleGuidedNavigation">
+                <button
+                    class="segment-btn"
+                    :class="{ active: hasGuidedNavigation }"
+                >
+                    <span class="label">On</span>
+                </button>
+
+                <button
+                    class="segment-btn"
+                    :class="{ activeOff: !hasGuidedNavigation }"
+                >
+                    <span class="label">Off</span>
                 </button>
             </div>
         </div>
