@@ -76,6 +76,15 @@ if (electronIsDev) {
     setupReloadWatcher(myCapacitorApp);
 }
 
+app.on("browser-window-created", (_, window) => {
+    window.on("close", (event: Electron.Event) => {
+        if (!(app as any).isQuitting) {
+            event.preventDefault();
+            window.hide(); // Hide to tray instead of closing
+        }
+    });
+});
+
 // Run Application
 (async () => {
     // Wait for electron app to be ready.
@@ -92,17 +101,6 @@ if (electronIsDev) {
 
     // Check for updates if we are in a packaged app.
     // autoUpdater.checkForUpdatesAndNotify();
-
-    const mainWindow = myCapacitorApp.getMainWindow() as any;
-
-    if (mainWindow) {
-        mainWindow.on("close", (event: Electron.Event) => {
-            if (!(app as any).isQuitting) {
-                event.preventDefault();
-                mainWindow.hide();
-            }
-        });
-    }
 })();
 
 app.on("before-quit", function () {
@@ -114,9 +112,6 @@ app.on("before-quit", function () {
 app.on("window-all-closed", function () {
     // On OS X it is common for applications and their menu bar
     // to stay active until the user quits explicitly with Cmd + Q
-    if (process.platform !== "darwin") {
-        app.quit();
-    }
 });
 
 // When the dock icon is clicked.
@@ -126,6 +121,8 @@ app.on("activate", async function () {
     const win = myCapacitorApp.getMainWindow();
     if (win && win.isDestroyed()) {
         await myCapacitorApp.init();
+    } else if (win) {
+        win.show();
     }
 });
 
