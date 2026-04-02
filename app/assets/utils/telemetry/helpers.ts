@@ -70,7 +70,7 @@ export function getGameState(data: TelemetryPacket) {
 
 export function getNavigationState(data: TelemetryPacket) {
     const fuel = parseInt(data.truck.current.dashboard.fuelAmount.toFixed(1));
-    const speedLimit = Math.round(data.navigation.speedLimitKph);
+    const speedLimit = Math.max(0, Math.round(data.navigation.speedLimitKph));
 
     const totalMinutes = data.common.nextRestStopMinutes;
     const hours = Math.max(0, Math.floor(totalMinutes / 60));

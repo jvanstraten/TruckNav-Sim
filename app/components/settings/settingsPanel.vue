@@ -35,7 +35,7 @@ function toggleGuidedNavigation() {
     <div class="settings-panel">
         <div class="settings-title setting">
             <div class="icon-btn" v-on:click="closePanel">
-                <Icon name="material-symbols:close-rounded" size="26" />
+                <Icon name="material-symbols:arrow-back-rounded" size="26" />
             </div>
 
             <div class="title-icon">

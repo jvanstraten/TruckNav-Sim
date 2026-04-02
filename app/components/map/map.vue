@@ -509,6 +509,7 @@ const onCancelRoute = () => {
                     </div>
 
                     <SpeedLimit
+                        v-show="speedLimit > 0"
                         :truck-speed="truckSpeed"
                         :speed-limit="speedLimit"
                     />
