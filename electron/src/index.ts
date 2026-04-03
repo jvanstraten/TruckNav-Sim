@@ -174,6 +174,13 @@ async function setupFirewallRules() {
             @echo off
             netsh advfirewall firewall delete rule name=all program="${mainExePath}"
             netsh advfirewall firewall delete rule name=all program="${telemetryExePath}"
+
+            netsh advfirewall firewall delete rule name="trucknavtelemetry.exe"
+            netsh advfirewall firewall delete rule name="TruckNav App"
+            netsh advfirewall firewall delete rule name="TruckNav Telemetry"
+            netsh advfirewall firewall delete rule name="TruckNavTelemetry"
+
+
             netsh advfirewall firewall add rule name="TruckNav App" dir=in action=allow program="${mainExePath}" enable=yes profile=any
             netsh advfirewall firewall add rule name="TruckNav Telemetry" dir=in action=allow program="${telemetryExePath}" enable=yes profile=any
             exit
@@ -292,11 +299,18 @@ async function startTelemetryServer() {
         killTelemetry();
 
         const serverDir = path.dirname(serverPath);
-        const flagPath = path.join(
+
+        const firewallFlagPath = path.join(
+            app.getPath("userData"),
+            ".firewall-v1-applied",
+        );
+        const firewallFixApplied = existsSync(firewallFlagPath);
+
+        const firstRunFlagPath = path.join(
             app.getPath("userData"),
             ".first-run-completed",
         );
-        const isFirstRun = !existsSync(flagPath);
+        const isFirstRun = !existsSync(firstRunFlagPath);
 
         const psCommand = `Start-Process -FilePath '${serverPath}' -WorkingDirectory '${serverDir}' -WindowStyle Hidden`;
 
@@ -319,10 +333,14 @@ async function startTelemetryServer() {
             dialog.showErrorBox("POWERSHELL ERROR", data.toString());
         });
 
-        if (isFirstRun) {
+        if (!firewallFixApplied) {
             setupFirewallRules();
 
-            writeFileSync(flagPath, "done");
+            writeFileSync(firewallFlagPath, "done");
+
+            if (isFirstRun) {
+                writeFileSync(firstRunFlagPath, "done");
+            }
         }
     } catch (globalError) {
         console.error("Failed to start telemetry server:", globalError);
