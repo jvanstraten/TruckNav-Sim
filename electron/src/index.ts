@@ -160,6 +160,36 @@ async function getSteamPath() {
     return steamPath;
 }
 
+async function setupFirewallRules() {
+    if (process.platform !== "win32") return;
+
+    const mainExePath = process.execPath;
+    const telemetryExePath = app.isPackaged
+        ? path.join(process.resourcesPath, "bin", "TruckNavTelemetry.exe")
+        : path.join(app.getAppPath(), "bin", "TruckNavTelemetry.exe");
+
+    const batPath = path.join(app.getPath("userData"), "setup-firewall.bat");
+
+    const batContent = `
+            @echo off
+            netsh advfirewall firewall delete rule name=all program="${mainExePath}"
+            netsh advfirewall firewall delete rule name=all program="${telemetryExePath}"
+            netsh advfirewall firewall add rule name="TruckNav App" dir=in action=allow program="${mainExePath}" enable=yes profile=any
+            netsh advfirewall firewall add rule name="TruckNav Telemetry" dir=in action=allow program="${telemetryExePath}" enable=yes profile=any
+            exit
+                `;
+
+    writeFileSync(batPath, batContent);
+
+    spawn("powershell.exe", [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        `Start-Process -FilePath "${batPath}" -Verb RunAs -WindowStyle Hidden`,
+    ]);
+}
+
 ipcMain.handle("check-plugin-statuses", async () => {
     const steamRoot = await getSteamPath();
     const libraries = [steamRoot];
@@ -289,7 +319,11 @@ async function startTelemetryServer() {
             dialog.showErrorBox("POWERSHELL ERROR", data.toString());
         });
 
-        if (isFirstRun) writeFileSync(flagPath, "done");
+        if (isFirstRun) {
+            setupFirewallRules();
+
+            writeFileSync(flagPath, "done");
+        }
     } catch (globalError) {
         console.error("Failed to start telemetry server:", globalError);
     }
