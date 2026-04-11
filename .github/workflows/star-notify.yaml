@@ -16,11 +16,11 @@ jobs:
                     "username": "TruckNav Milestones",
                     "avatar_url": "https://raw.githubusercontent.com/Rares-Muntean/TruckNav-Sim/master/public/icon.png",
                     "embeds": [{
-                      "title": "🚛 New Star! 🚛",
-                      "description": "## **${{ github.actor }}** just joined the convoy! \n\nThank you for supporting **TruckNav-Sim**!",
+                      "title": "⭐ New Driver in the Fleet! ⭐",
+                      "description": "[**${{ github.actor }}**](https://github.com/${{ github.actor }}) just starred the repo!\n\nThank you for supporting **TruckNav-Sim**.\nWe are now at **${{ github.event.repository.stargazers_count }}** stars. 🛣️",
                       "color": 3447003,
                       "thumbnail": { "url": "${{ github.event.sender.avatar_url }}" },
-                      "footer": { "text": "New hauling milestone reached!" }
+                      "footer": { "text": "TruckNav-Sim Community Hub" }
                     }]
                   }' \
                   ${{ secrets.DISCORD_WEBHOOK }}
