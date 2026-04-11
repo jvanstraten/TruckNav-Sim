@@ -41,8 +41,9 @@ const fuelConverted = computed(() => literToUserUnits(props.fuel));
 
                 <div class="sleep-div">
                     <Icon
-                        name="solar:moon-sleep-bold"
+                        name="icon-park-outline:sleep-two"
                         class="sleep-icon"
+                        size="22"
                         :class="{ 'pulse-blue': restStopMinutes < 90 }"
                     />
                     <p>{{ restStopTime }}</p>

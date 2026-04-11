@@ -19,39 +19,67 @@ $speed-limit-height: 72px;
     line-height: 1;
 }
 
-.speed-limit-circle {
+.speed-limit-sign {
     position: absolute;
     bottom: 25px;
     left: 22px;
     transition: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
 
-    border: 5px solid $red-color;
-
     background-color: $white-font-text;
-    border-radius: 100px;
-    width: $speed-limit-height;
-    height: calc($speed-limit-height - 3px);
 
     display: flex;
     justify-content: center;
     align-items: center;
     bottom: 25px;
+
+    &.circle {
+        border: 5px solid $red-color;
+        border-radius: 100px;
+
+        width: $speed-limit-height;
+        height: calc($speed-limit-height - 3px);
+    }
+
+    &.square {
+        border: 3px solid #222;
+
+        border-radius: 6px;
+
+        width: calc($speed-limit-height - 12px);
+        height: $speed-limit-height;
+    }
 }
 
-.speed-limit-circle-over-limit {
+.speed-limit-over-limit {
     position: absolute;
-    top: calc(-1 * ($speed-limit-height - 46px));
-    right: calc(-1 * ($speed-limit-height - 55px));
 
-    border: 3.5px solid #304257;
-    border-radius: 100px;
-
-    width: (calc($speed-limit-height - 28px));
-    height: (calc($speed-limit-height - 28px));
     background-color: #1d2833;
 
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
+
+    &.circle {
+        top: calc(-1 * ($speed-limit-height - 46px));
+        right: calc(-1 * ($speed-limit-height - 55px));
+
+        width: (calc($speed-limit-height - 28px));
+        height: (calc($speed-limit-height - 28px));
+
+        border: 3.5px solid #304257;
+        border-radius: 100px;
+    }
+
+    &.square {
+        top: calc(-1 * ($speed-limit-height - 47px));
+        right: calc(-1 * ($speed-limit-height - 56px));
+
+        width: (calc($speed-limit-height - 39px));
+        height: (calc($speed-limit-height - 30px));
+
+        border: 2px solid #304257;
+
+        border-radius: 4px;
+    }
 }
