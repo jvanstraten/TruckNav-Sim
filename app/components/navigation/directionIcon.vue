@@ -22,7 +22,7 @@ const props = defineProps<{
 <template>
     <div class="icon-wrapper" :style="{ '--active-color': props.activeColor }">
         <svg
-            viewBox="0 0 22 22"
+            viewBox="0 0 24 24"
             class="direction-icon"
             :class="{ 'is-active': active }"
         >

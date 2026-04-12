@@ -11,6 +11,7 @@ export interface GameProfile {
     units: UnitSystem;
     ownedDlcs: number[];
     lastDestination: [number, number] | null;
+    hasTurnNavigation: boolean;
 }
 
 export interface AppSettingsState {
@@ -20,7 +21,6 @@ export interface AppSettingsState {
         ets2: GameProfile;
         ats: GameProfile;
     };
-    hasTurnNavigation: boolean;
 }
 
 const DEFAULT_PROFILE: GameProfile = {
@@ -30,6 +30,7 @@ const DEFAULT_PROFILE: GameProfile = {
     units: "metric",
     ownedDlcs: Array.from({ length: 10 }, (_, i) => i + 1),
     lastDestination: null,
+    hasTurnNavigation: true,
 };
 
 const DEFAULT_SETTINGS: AppSettingsState = {
@@ -44,7 +45,6 @@ const DEFAULT_SETTINGS: AppSettingsState = {
             units: "imperial",
         },
     },
-    hasTurnNavigation: true,
 };
 
 const STORAGE_KEY = "truck-nav-settings";
@@ -114,7 +114,18 @@ export const useSettings = () => {
     };
 
     const resetSettings = () => {
-        settings.value = { ...DEFAULT_SETTINGS };
+        const game = settings.value.selectedGame || "ets2";
+
+        const currentDest = settings.value.profiles[game].lastDestination;
+
+        const freshProfile = JSON.parse(
+            JSON.stringify(DEFAULT_SETTINGS.profiles[game]),
+        );
+
+        freshProfile.lastDestination = currentDest;
+
+        settings.value.profiles[game] = freshProfile;
+
         saveSettings();
     };
 

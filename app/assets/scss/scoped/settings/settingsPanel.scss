@@ -74,6 +74,11 @@
     box-shadow: none;
     padding: 6px 10px;
     font-size: 1.6rem;
+
+    &.default-color {
+        background-color: $default-background-color-dark;
+        color: $white-font-text;
+    }
 }
 
 /**

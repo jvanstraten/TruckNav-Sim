@@ -77,7 +77,7 @@ export const useRouteController = (
     );
 
     watch(
-        () => settings.value.hasTurnNavigation,
+        () => activeSettings.value.hasTurnNavigation,
         (hasGuidedNavigation) => {
             if (!map.value) return;
 
@@ -741,7 +741,7 @@ export const useRouteController = (
                     nextTurnDistance.value = 0;
                 }
 
-                if (settings.value.hasTurnNavigation) {
+                if (activeSettings.value.hasTurnNavigation) {
                     drawTurnArrows(
                         fullRouteDirections.value,
                         result.displayPath,
@@ -857,7 +857,7 @@ export const useRouteController = (
 
                     if (
                         currentRoutePath.value &&
-                        settings.value.hasTurnNavigation
+                        activeSettings.value.hasTurnNavigation
                     ) {
                         drawTurnArrows(
                             fullRouteDirections.value,

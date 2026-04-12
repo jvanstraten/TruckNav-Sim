@@ -2,7 +2,8 @@
 import { ets2Expansions } from "~/data/ets2/ets2Expansions";
 import { atsExpansions } from "~/data/ats/atsExpansions";
 
-const { settings, activeSettings, updateProfile, updateGlobal } = useSettings();
+const { settings, activeSettings, updateProfile, resetSettings } =
+    useSettings();
 
 const props = defineProps<{ closePanel: () => void }>();
 
@@ -12,7 +13,7 @@ const isTextThemeLight = computed(
     () => activeSettings.value.textColor === "light",
 );
 const hasGuidedNavigation = computed(
-    () => settings.value.hasTurnNavigation === true,
+    () => activeSettings.value.hasTurnNavigation === true,
 );
 
 const selectedExpansion = computed(() => {
@@ -34,7 +35,10 @@ function toggleUnits() {
 }
 
 function toggleGuidedNavigation() {
-    updateGlobal("hasTurnNavigation", hasGuidedNavigation.value ? false : true);
+    updateProfile(
+        "hasTurnNavigation",
+        hasGuidedNavigation.value ? false : true,
+    );
 }
 </script>
 
@@ -67,7 +71,7 @@ function toggleGuidedNavigation() {
             <div class="owned-dlcs">
                 <button
                     @click.prevent="toggleDlcPanel"
-                    class="nav-btn settings-btn default-color"
+                    class="nav-btn settings-btn"
                 >
                     {{ activeSettings.ownedDlcs.length }} /
                     {{ Object.keys(selectedExpansion).length }} active
@@ -148,6 +152,20 @@ function toggleGuidedNavigation() {
                     <span class="label">Off</span>
                 </button>
             </div>
+        </div>
+
+        <div class="option setting">
+            <div class="option-title">
+                <Icon name="lucide:rotate-ccw" size="24" />
+                <p>Reset to Defaults</p>
+            </div>
+
+            <button
+                @click.prevent="resetSettings"
+                class="nav-btn settings-btn default-color"
+            >
+                Reset
+            </button>
         </div>
 
         <Transition name="panel-pop">

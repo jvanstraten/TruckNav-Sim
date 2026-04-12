@@ -82,9 +82,9 @@ export function generateDirectionsList(
                                   : exitCount === 3
                                     ? "rd"
                                     : "th";
-                        turnText = `Take the ${exitCount}${suffix} exit`;
+                        turnText = `${exitCount}${suffix} exit`;
                     } else {
-                        turnText = `Take the exit at the roundabout`;
+                        turnText = `exit at the roundabout`;
                     }
                     break;
                 }
@@ -126,7 +126,7 @@ export function generateDirectionsList(
     steps.push({
         id: nodeSequence[nodeSequence.length - 1]!,
         type: "destination",
-        text: "Arrived at destination",
+        text: "Arrived",
         distance: 0,
         coords: nodeCoords.get(nodeSequence[nodeSequence.length - 1]!) || [
             0, 0,
