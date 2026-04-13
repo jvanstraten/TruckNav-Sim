@@ -1,49 +1,45 @@
 # Truck Nav
 
-**Truck Nav** is an external GPS navigation system for Euro Truck Simulator 2 and American Truck Siulator built using Typescript. It runs in the browser (perfect for a second monitor, tablet or phone) and provides real-time tracking and routing based on the in-game map.
+**Truck Nav** is an external GPS navigation system for Euro Truck Simulator 2 and American Truck Siulator built using Typescript. It runs as an APK, EXE or browser (perfect for a phone, tablet or second monitor) and provides real-time tracking and routing based on the in-game map.
 
 <div align="center">
-    <img width="300" alt="image" src="https://github.com/user-attachments/assets/94d10ca3-bdc7-4d58-956d-606377efe75d" />
-    <img width="300" alt="image" src="https://github.com/user-attachments/assets/9b70c7ba-51fd-4bb1-afcb-4bb4a19f4020" />
-    <br />
-    <br />
+    <a href="https://discord.gg/C5BTXCF2jC">
+        <img src="https://img.shields.io/badge/Discord-Join_Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord">
+    </a>
+    <a href="https://forum.scssoft.com/viewtopic.php?t=349145">
+        <img src="https://img.shields.io/badge/SCS_Forums-Official_Topic-2C3E50?style=for-the-badge&logo=discourse&logoColor=white" alt="SCS Forums">
+    </a>
     <a href="https://buymeacoffee.com/raresmnt">
         <img src="https://img.shields.io/badge/Support_the_Project-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black" alt="Buy Me A Coffee">
     </a>
+    <br />
+    <br />
+    <img width="300" alt="image" src="https://github.com/user-attachments/assets/6860e478-3c32-4143-97c4-fca8876ce90f" />
+    <img width="300" alt="image" src="https://github.com/user-attachments/assets/a977ea5f-af6f-49e2-adc4-78c8afef9879" />
 </div>
 
 # Current Status: Work in Progress / Demo
 
 Please consider this project a **Demo** or **Alpha**.
 
-While the core navigation works, the project is far from perfect. Creating the routing graph required a massive amount of manual work in **QGIS**, fixing individual road segments, roundabouts, and intersections to ensure the GPS knows where it can and cannot go.
+While the core navigation works, the project is far from perfect. Creating the routing graph required a massive amount of work in **QGIS** and scripting, fixing road segments, roundabouts, and intersections to ensure the GPS knows where it can and cannot go.
 
-* **Bugs are expected:** I am human, and with a map this size, I'm 100% sure that missed connections or restricted turns.
-* **Routing Quirks:** The `stepCost` (navigation weighting) is still being tweaked. You might notice the GPS taking slightly unusual routes or sometimes favoring a longer path. This can also happen because of missing connections, holes in the road network, or intersections that I missed.
-* **Ongoing Fixes:** As I play the game and use the app, I log coordinates of broken road nodes and fix them in QGIS for future updates.
-* **Known Quirks:** Inside company areas, it may help to move the truck slightly outside before clicking the map to route, as routing may fail otherwise.
-* **Real Company Mods**: If you use mods that change company names, the navigation might get confused. It’s currently built for the default game names.
-
-> [!WARNING]
-> **Dual-Game Setup (ETS2 & ATS)**
->
-> If you have both Euro Truck Simulator 2 and American Truck Simulator installed, please ensure they are located on the **same drive**. The telemetry server needs to detect both game installations to function correctly; if one is missing or on a separate drive, the application may throw errors during initialization.
+- **ATS / ETS2 Version**: Up to **1.58** ✅
+- **Supported DLCs**: All ✅
+- **Map Mods**: None ❌
 
 # Known Issues & Limitations
-
-> [!CAUTION]
-> **Real Company Name Mods:** If you use mods that change company names (e.g., "Real Company Names"), the navigation will likely fail or route incorrectly. The app is currently optimized for vanilla game identifiers.
-
 ### ⚠️ Common Quirks
-*   **Routing Logic:** The `stepCost` is still being tuned. You may see the GPS favor longer paths or take unusual routes due to missing nodes or restricted turns in the map data.
-*   **Company Areas:** GPS routing might fail if you are deep inside a company yard. Try moving your truck slightly toward the exit before setting a destination.
-*   **Map Gaps:** I am manually fixing road segments in QGIS, but some "holes" in the network still exist which can break the pathfinding.
+*   **Company Areas:** GPS routing might fail if you are deep inside a company yard. Try moving your truck slightly toward the exit before setting the destination if errors are happening.
+*   **Map Gaps:** The graph I currently use can produce some errors (disconnected roads, illegal U-turns) but should 99% of the time show the correct route.
 
-### 📱 Performance & Compatibility
+### 📈 Performance & Compatibility
 > [!NOTE]
 >*  **Performance:** Optimization is ongoing. On older tablets or phones, the map rendering may feel laggy. 
->*  **Map Support:** Currently supports base ETS2/ATS + all DLCs (up to v1.58). ProMods and other map mods are **not** yet supported.
+>*  **Map Support:** Currently supports base _**ETS2/ATS + all DLCs** (**up to v1.58**)_. ProMods and other map mods are **NOT** yet supported.
 
+> [!CAUTION]
+> **Real Company Name Mods:** If you use other mods that change company names other than the mod from **MLH82**, the navigation will likely fail or route incorrectly. The app is optimized for only vanilla and _**Real companies, gas station & billboards for ATS and ETS2**_ by **MLH82**.
 # Installation via .exe File
 
 1. Download the latest setup file from the
@@ -76,8 +72,8 @@ You can either clone the repository using Git (recommended for easy updates) or 
 **Option A: Git Clone (Recommended)**
 Open your terminal or command prompt and run:
 ```bash
-git clone https://github.com/Rares-Muntean/ets2-navigation-gps.git
-cd ets2-navigation-gps
+git clone https://github.com/Rares-Muntean/TruckNav-Sim.git
+cd TruckNav-Sim
 ```
 **Option B: Download ZIP**
 1. Click the Code button at the top of this page and select `Download ZIP`.
@@ -111,13 +107,6 @@ npx nuxi dev --host 0.0.0.0
 ```
 Follow the instructions from the opened .exe to install the telemetry plugin DLLs into your game directory.
 
-> [!NOTE]
-> **Troubleshooting:**
-> If somehow the installation of the telemetry server fails, you can install it manually:
-> 1. Download and the server from the [Funbits Telemetry Server Repo](https://github.com/Funbit/ets2-telemetry-server).
-> 2. Extract the .zip into the root folder of this project.
-> 3. Rename it: `ets2-telemetry-server'.
-
 ## Accessing the App in Your Browser
 To open the app in your browser, click the network link shown in the terminal (the local link may have telemetry fetching issues):
 ```Bash
@@ -127,51 +116,38 @@ To open the app in your browser, click the network link shown in the terminal (t
 #  How it Works
 
 1. **Telemetry:** The app uses a telemetry server to pull data (coordinates, speed, heading) directly from the running game.
-2.  **Mapping:** The in-game coordinates are converted to a standard **WGS84** projection to allow them to work with web mapping libraries.
+2.  **Mapping:** The in-game coordinates are converted to a standard **WGS84** projection to allow them to work with web mapping libraries (visual issues might still appear).
 3.  **Routing:** A custom graph built from game files allows the app to calculate the shortest path to your destination.
 
 <div align="center">
-  <img width="895" height="649" alt="close-up-gps" src="https://github.com/user-attachments/assets/ab0e0baf-bb6e-49d2-b5f0-123277d278dc" />
+    <img width="895" height="649" alt="close-up-gps" src="https://github.com/user-attachments/assets/4c593709-6f91-4109-9685-bc292ead920e" />
 </div>
 
 # How You Can Help Improve the Map
 
-If you test the application and encounter broken intersections, missing road connections, roundabout issues, or strange routing behavior, you can help improve the navigation by reporting what you find.
+If you test the application and encounter strange behavior, you can help improve the navigation by reporting what you find.
 
 ### What to Report
 - A brief description of the issue  
-- The exact coordinates of the location (if using the app in the browser)  
 - A screenshot from the app
 
-### How to Collect Coordinates
-1. Click or tap the spot on the map where the issue occurs  
-2. Check the console — it prints the clicked coordinates  
-3. Copy the coordinate pair and include it in your report
-
 ### Where to Send Reports
-Send your findings to:
+Send your findings to **ONE** of the options below:
 
 * raresmnt@yahoo.com
-* OR
-* byatisglaaki@gmail.com
+* Discord Server -> #🪲-bugs
+* GitHub -> Issues
 
-Your reports help refine the routing graph and improve navigation accuracy.
+Your reports help refine the application and improve navigation accuracy.
 
 **Note:**  
 Reported issues will be addressed as time permits.
 
 # Credits & Acknowledgements
 
-This project stands on the shoulders of giants. A massive thank you to the following developers who made this possible:
-
-### [@truckermudgeon](https://github.com/truckermudgeon)
-Special thanks for the **['maps'](https://github.com/truckermudgeon/maps)** repository.
-*   This provided the essential starting point for map parsing.
-*   The logic for converting internal game coordinates to a usable format (WGS84) was invaluable for getting the map rendered correctly.
-
-### [@Funbit](https://github.com/Funbit)
-Thanks for the **['ets2-telemetry-server'](https://github.com/Funbit/ets2-telemetry-server)**.
-*   This tool is the bridge that allows the browser to communicate with the game engine. Without this, we wouldn't have live truck data.
+### [@RenCloud](https://github.com/RenCloud)
+Thanks for the **[scs-sdk-plugin](https://github.com/RenCloud/scs-sdk-plugin)**.
+*   This tool is the bridge that allows the browser to communicate with the game engine. It's core functionality is refined and implemented seamlessly inside TruckNav.
 
 ---
 
