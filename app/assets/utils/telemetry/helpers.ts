@@ -3,14 +3,22 @@ import { getBearing } from "../map/maths";
 import type { GameType, TelemetryPacket } from "~/types";
 
 export function getTruckState(
-    data: TelemetryPacket,
+    data: any,
     lastPosition: [number, number] | null,
     selectedGame: GameType,
     currentHeadingOffset: number,
     speedSamples: number[],
     maxSamples: number,
 ) {
-    const { x, z } = data.truck.current.position;
+    let x = 0;
+    let z = 0;
+    let rawGameHeading = 0;
+    let placement = data["truck.world.placement"];
+    if (placement) {
+        x = placement[0];
+        z = placement[2];
+        rawGameHeading = placement[3];
+    }
     let truckCoords: [number, number];
 
     if (Math.abs(x) < 0.001 && Math.abs(z) < 0.001) {
@@ -24,12 +32,11 @@ export function getTruckState(
 
     const truckSpeed = Math.max(
         0,
-        Math.floor(data.truck.current.dashboard.speedKph),
+        Math.floor(data["truck.speed"] * 3.6),
     );
 
     const avgSpeed = updateMovingAverage(truckSpeed, speedSamples, maxSamples);
 
-    const rawGameHeading = data.truck.current.heading;
     const { heading, newOffset } = getCorrectHeading(
         rawGameHeading,
         truckSpeed,
@@ -47,18 +54,15 @@ export function getTruckState(
     };
 }
 
-export function getGameState(data: TelemetryPacket) {
-    const name = data.game.toLowerCase();
-    const gameConnected = name === "ets2" || name === "ats";
+export function getGameState(data: any) {
+    const gameConnected = true;
 
-    const scale = data.common.mapScale;
+    const scale = data["local.scale"];
 
     const hasInGameMarker =
-        data.navigation.distance > 100 && data.job.income === 0;
+        data["truck.navigation.distance"] > 100 && data["job.income"] === 0;
 
-    const { formatted, raw } = convertTelemtryTime(data.common.gameTime);
-    const day = raw.toUTCString().slice(0, 3);
-    const gameTime = `${day} ${formatted}`;
+    const gameTime = convertTelemtryTime(data["game.time"]);
 
     return {
         gameConnected,
@@ -68,11 +72,11 @@ export function getGameState(data: TelemetryPacket) {
     };
 }
 
-export function getNavigationState(data: TelemetryPacket) {
-    const fuel = parseInt(data.truck.current.dashboard.fuelAmount.toFixed(1));
-    const speedLimit = Math.max(0, Math.round(data.navigation.speedLimitKph));
+export function getNavigationState(data: any) {
+    const fuel = 0;//parseInt(data.truck.current.dashboard.fuelAmount.toFixed(1)); -> not sure what the scaling should be
+    const speedLimit = Math.max(0, Math.round(data["truck.navigation.speed.limit"] * 3.6));
 
-    const totalMinutes = data.common.nextRestStopMinutes;
+    const totalMinutes = data["rest.stop"];
     const hours = Math.max(0, Math.floor(totalMinutes / 60));
     const mins = Math.max(0, totalMinutes % 60);
 
@@ -83,27 +87,26 @@ export function getNavigationState(data: TelemetryPacket) {
     return { fuel, speedLimit, restStoptime, restStopMinutes: totalMinutes };
 }
 
-export function getJobState(data: TelemetryPacket, selectedGame: GameType) {
+export function getJobState(data: any, selectedGame: GameType) {
     let companyTarget = "";
     let cityTarget = "";
     let trailerCoords: [number, number] = [0, 0];
 
-    const hasActiveJob = data.specialEvents.onJob;
+    const hasActiveJob = !!data["job.cargo"];
 
-    const destinationCity = data.job.cityDestinationId;
-    const destinationCompany = data.job.companyDestinationId;
+    const destinationCity = data["job.destination.city.id"];
+    const destinationCompany = data["job.destination.company.id"];
 
-    const jobType = data.job.jobType;
+    const jobType = data["job.job.market"];
 
-    const sourceCity = data.job.citySourceId;
-    const sourceCompany = data.job.companySourceId;
+    const sourceCity = data["job.source.city.id"];
+    const sourceCompany = data["job.source.company.id"];
 
-    if (data.trailers[0]) {
-        const isTrailerAvailable =
-            data.trailers[0].position.y !== 0 &&
-            data.trailers[0].position.x !== 0;
+    if (data["trailer.0.body.type"]) {
+        const placement = data["trailer.0.world.placement"];
+        const isTrailerAvailable = placement && placement[0] != 0 && placement[2] != 0;
 
-        const isTrailerAttached = data.trailers[0]?.attached;
+        const isTrailerAttached = data["trailer.0.connected"];
 
         if (jobType === "external_contracts" || jobType === "external_market") {
             companyTarget =
@@ -197,15 +200,11 @@ function getCorrectHeading(
     return { heading: finalHeading, newOffset: internalOffset };
 }
 
-function convertTelemtryTime(time: string) {
-    const date = new Date(time);
-    return {
-        formatted: `${date.getUTCHours().toString().padStart(2, "0")}:${date
-            .getUTCMinutes()
-            .toString()
-            .padStart(2, "0")}`,
-        raw: date,
-    };
+function convertTelemtryTime(time: any) {
+    let minutes = time % (24 * 60);
+    let hours = Math.floor(minutes / 60);
+    minutes = minutes % 60;
+    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
 }
 
 function updateMovingAverage(

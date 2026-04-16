@@ -65,7 +65,7 @@ export function useEtsTelemetry() {
         const ip = isCapacitor
             ? settings.value.savedIP
             : window.location.hostname;
-        const url = `ws://${ip}:30001`;
+        const url = `ws://${ip}:30001/api/ws/data/flat?throttle=100`;
 
         socket = new WebSocket(url);
 
@@ -77,15 +77,18 @@ export function useEtsTelemetry() {
             try {
                 const rawData = JSON.parse(event.data);
 
-                const data = rawData as TelemetryPacket;
-
-                if (data.game.toLowerCase() !== settings.value.selectedGame) {
+                let game_id = rawData["game.id"];
+                // SCS game ID uses eut2 instead of ets2
+                if (game_id == "eut2") {
+                    game_id = "ets2";
+                }
+                if (game_id !== settings.value.selectedGame) {
                     resetDataOnDisconnected(onUpdate);
                     return;
                 }
 
-                if (data) {
-                    processData(data, onUpdate);
+                if (rawData) {
+                    processData(rawData, onUpdate);
                 }
             } catch (e) {
                 console.error("Data error", e);
@@ -107,7 +110,7 @@ export function useEtsTelemetry() {
     }
 
     function processData(
-        data: TelemetryPacket,
+        data: any,
         onUpdate?: (data: TelemetryUpdate) => void,
     ) {
         const { gameConnected, hasInGameMarker, gameTime, scale } =
