@@ -73,7 +73,7 @@ export function getGameState(data: any) {
 }
 
 export function getNavigationState(data: any) {
-    const fuel = 0;//parseInt(data.truck.current.dashboard.fuelAmount.toFixed(1)); -> not sure what the scaling should be
+    const fuel = parseInt(data["truck.fuel.amount"].toFixed(1));
     const speedLimit = Math.max(0, Math.round(data["truck.navigation.speed.limit"] * 3.6));
 
     const totalMinutes = data["rest.stop"];

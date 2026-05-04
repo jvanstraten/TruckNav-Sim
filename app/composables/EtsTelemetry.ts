@@ -116,6 +116,8 @@ export function useEtsTelemetry() {
         const { gameConnected, hasInGameMarker, gameTime, scale } =
             getGameState(data);
 
+        if (data["frame.paused"]) return;
+
         Object.assign(gameState, {
             gameTime: gameTime,
             gameConnected: gameConnected,
