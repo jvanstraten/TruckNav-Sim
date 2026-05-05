@@ -15,11 +15,8 @@ To install the plugin:
    create a "plugins" directory, if it didn't already exist.
 
 
-Using the plugin from a browser
-===============================
-
-You don't need to install anything else if you just want to use TruckNav from a
-web browser.
+Usage
+=====
 
 When you launch the game, you will get a popup in the main menu that reads
 

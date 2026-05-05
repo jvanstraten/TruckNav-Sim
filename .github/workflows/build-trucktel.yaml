@@ -45,6 +45,7 @@ jobs:
             - name: Generate TruckTel app
               run: |
                   mkdir -p gamebindir/plugins/trucktel/trucknav/www
+                  cp trucktel/LICENSE.txt gamebindir/plugins/trucktel/trucknav
                   cp trucktel/config.yaml gamebindir/plugins/trucktel/trucknav
                   cp -r .output/public/* gamebindir/plugins/trucktel/trucknav/www
                   cp trucktel/README.txt gamebindir
