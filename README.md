@@ -28,8 +28,9 @@ Want to use it anyway? Install as follows:
  - The "bin" directory should have one directory in it, of which the name
    depends on your OS. Open it. If this directory has the "amtrucks" or
    "eurotrucks2" executable in it, you're in the right place.
- - Extract the TruckNav-on-TruckTel.zip archive to this directory. It should
-   create a "plugins" directory, if it didn't already exist.
+ - Extract [TruckNav-0.4.4-on-TruckTel-0.1.0.zip](https://drive.google.com/file/d/1yH55BH-fST0BNxZk2IS8VmdCbZky_Pgm/view?usp=drive_link)
+   to this directory. It should create a "plugins" directory, if it didn't
+   already exist.
 
 Schematically:
 
@@ -44,6 +45,12 @@ Schematically:
          '- plugins        <- Should be created when you extract the zip to the right
              '- ...           place, unless you already have it from another mod.
 ```
+
+Note that the zip is hosted on Google Drive because GitHub refuses the upload
+for being too large. It was built from 884dc1b1 by the
+[build-trucktel.yaml](.github/workflows/build-trucktel.yaml) action. If the
+link stops working or you just prefer to build it yourself, follow the steps
+there.
 
 ## Usage
 
