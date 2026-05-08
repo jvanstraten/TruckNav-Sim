@@ -28,7 +28,7 @@ Want to use it anyway? Install as follows:
  - The "bin" directory should have one directory in it, of which the name
    depends on your OS. Open it. If this directory has the "amtrucks" or
    "eurotrucks2" executable in it, you're in the right place.
- - Extract [TruckNav-0.4.4-on-TruckTel-0.1.0.zip](https://drive.google.com/file/d/1yH55BH-fST0BNxZk2IS8VmdCbZky_Pgm/view?usp=drive_link)
+ - Extract [TruckNav-0.4.4-dev-on-TruckTel-0.1.1.zip](https://drive.google.com/file/d/1GAXfCu5iCBUzwYfTxkg6lmnxmIYzdKgg/view?usp=sharing)
    to this directory. It should create a "plugins" directory, if it didn't
    already exist.
 
@@ -58,15 +58,12 @@ When you launch the game, you will get a popup in the main menu that reads
 
     Request to use advanced SDK features detected.
 
-When you acknowledge this, the plugin will load, and you can open the web app.
-YOU CANNOT OPEN THE WEB APP BEFORE THIS TIME, it will not load.
+Once you acknowledge this, TruckTel should open a browser with its landing
+page. From there, you can select the TruckNav app to get a QR code for loading
+it on other devices, or navigate to it locally if you want to run TruckNav on
+a second monitor.
 
-To open the app on a second screen of the computer you're running the game on,
-open a browser and go to [http://localhost:30001/](http://localhost:30001/).
-On different devices, you can try
-[http://trucktel.local:30001/](http://trucktel.local:30001/). If that doesn't
-work, try replacing `trucktel.local` with your local IP address. If that
-doesn't work either, your firewall is probably blocking the webserver that's
-built into TruckTel. Make sure to allow network access to the game when
-prompted by your firewall, or to permit access manually if you've denied the
-prompt earlier, or you use a firewall that doesn't prompt you at all.
+If no browser window opens once you start the game, follow the troubleshooting
+steps [here](https://github.com/jvanstraten/TruckTel/blob/main/doc/troubleshooting.md).
+If the landing page does open but something else isn't working, follow the
+troubleshooting steps on the landing page.
