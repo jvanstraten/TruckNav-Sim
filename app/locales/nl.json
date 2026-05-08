@@ -70,13 +70,14 @@
     "settings": {
         "appFont": "App-lettertype",
         "appearance": "Uiterlijk",
+        "background": "Achtergrond",
+        "land": "Land",
+        "roads": "Wegen",
         "chooseLanguage": "Taal kiezen",
         "compactTripSize": "Compacte ritgrootte",
         "description": "App-voorkeuren en aanpassingen",
         "drivingInfo": "Rij-informatie",
-        "english": "Engels",
         "general": "Algemeen",
-        "german": "Duits",
         "guidedNavigation": "Begeleide navigatie",
         "hudButtonSize": "HUD-knopgrootte",
         "imperial": "Imperiaal",
@@ -97,6 +98,15 @@
         "title": "Instellingen",
         "truckMarkerSize": "Truckmarkergrootte",
         "units": "Eenheden"
+    },
+    "languages": {
+        "czech": "Tsjechisch",
+        "dutch": "Nederlands",
+        "english": "Engels",
+        "german": "Duits",
+        "slovak": "Slowaaks",
+        "romanian": "Roemeens",
+        "korean": "Koreaans"
     },
     "uiComponents": {
         "fuelDescription": "Toont je resterende brandstofniveau en pulseert wanneer het laag is.",

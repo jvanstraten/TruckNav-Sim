@@ -70,13 +70,14 @@
     "settings": {
         "appFont": "App Schriftart",
         "appearance": "Aussehen",
+        "background": "Hintergrund",
+        "land": "Land",
+        "roads": "Straßen",
         "chooseLanguage": "Sprache auswählen",
         "compactTripSize": "Kompakte Reisegröße",
         "description": "App Einstellungen und Anpassung",
         "drivingInfo": "Fahrinfos",
-        "english": "Englisch",
         "general": "Allgemein",
-        "german": "Deutsch",
         "guidedNavigation": "Geführte Navigation",
         "hudButtonSize": "HUD Button Größe",
         "imperial": "Imperial",
@@ -97,6 +98,15 @@
         "title": "Einstellungen",
         "truckMarkerSize": "Truck Marker Größe",
         "units": "Einheiten"
+    },
+    "languages": {
+        "czech": "Tschechisch",
+        "dutch": "Niederländisch",
+        "english": "Englisch",
+        "german": "Deutsch",
+        "slovak": "Slowakisch",
+        "romanian": "Rumänisch",
+        "korean": "Koreanisch"
     },
     "uiComponents": {
         "fuelDescription": "Zeigt deinen verbleibenden Kraftstoff an und pulsiert bei niedrigem Stand.",

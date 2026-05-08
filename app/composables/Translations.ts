@@ -1,10 +1,22 @@
 import de from "~/locales/de.json";
 import en from "~/locales/en.json";
 import nl from "~/locales/nl.json";
+import cs from "~/locales/cs.json";
+import sk from "~/locales/sk.json";
+import ro from "~/locales/ro.json";
+import ko from "~/locales/ko.json";
 
 type TranslationTree = typeof en;
 
-const dictionaries: Record<LocaleCode, TranslationTree> = { en, de, nl };
+const dictionaries: Record<LocaleCode, TranslationTree> = {
+    en,
+    de,
+    nl,
+    cs,
+    sk,
+    ro,
+    ko,
+};
 
 function readValue(tree: TranslationTree, path: string): string | undefined {
     return path.split(".").reduce<unknown>((current, segment) => {

@@ -1,5 +1,9 @@
 import type { Map as MapLibreGl, StyleSpecification } from "maplibre-gl";
-import { blendWithBg, lightenColor } from "~/assets/utils/shared/colors";
+import {
+    blendWithBg,
+    darkenColor,
+    lightenColor,
+} from "~/assets/utils/shared/colors";
 import { BlobSource } from "~/assets/utils/shared/BlobSource";
 
 export async function initializeMap(
@@ -27,7 +31,11 @@ export async function initializeMap(
             protocol.add(pmtilesInstance);
 
             console.log(
-                `Successfully loaded ${fileName} into memory (${(blob.size / 1024 / 1024).toFixed(2)} MB)`,
+                `Successfully loaded ${fileName} into memory (${(
+                    blob.size /
+                    1024 /
+                    1024
+                ).toFixed(2)} MB)`,
             );
         } catch (error) {
             console.error("Error loading PMTiles blob:", error);
@@ -57,7 +65,10 @@ export async function initializeMap(
             {
                 id: "background",
                 type: "background",
-                paint: { "background-color": "#272d39" },
+                paint: {
+                    "background-color":
+                        activeSettings.value.backgroundColor ?? "#24467b",
+                },
             },
             {
                 id: "lines",
@@ -76,7 +87,7 @@ export async function initializeMap(
         ets: {
             container,
             style,
-            center: [10, 50],
+            center: [0, 0],
             zoom: 6,
             minZoom: 5,
             maxZoom: 13,
@@ -85,15 +96,15 @@ export async function initializeMap(
             attributionControl: false,
             collectResourceTiming: false,
             maxBounds: [
-                [-28, 25], // [[west, south]
-                [50, 74], // [east, north]]
+                [-30, -23], // [[west, south]
+                [23, 25], // [east, north]]
             ],
         },
 
         ats: {
             container,
             style,
-            center: [-115, 40],
+            center: [0, 0],
             zoom: 6,
             minZoom: 5,
             maxZoom: 13,
@@ -102,8 +113,8 @@ export async function initializeMap(
             attributionControl: false,
             collectResourceTiming: false,
             maxBounds: [
-                [-130, 23], // SW
-                [-60, 55], // NE
+                [-30, -23], // [[west, south]
+                [23, 25], // [east, north]]
             ],
         },
     };
@@ -132,6 +143,31 @@ export async function initializeMap(
             url: "pmtiles://all-data",
         });
 
+        // WATER
+        map.addLayer({
+            id: "water",
+            type: "fill",
+            source: "all-data",
+            "source-layer": "water",
+            paint: {
+                "fill-color": activeSettings.value?.landColor ?? "#272d39",
+            },
+        });
+
+        // DISPLAYING COUNTRY DELIMITATIONS
+        map.addLayer({
+            id: "country-borders",
+            type: "fill",
+            source: "all-data",
+            "source-layer": "countries",
+            paint: {
+                "fill-color": activeSettings.value?.landColor
+                    ? darkenColor(activeSettings.value.landColor, 0.4)
+                    : "#3d546e",
+                "fill-opacity": 0.4,
+            },
+        });
+
         ////
         //// LAYERS FOR DISPLAYING
         //// FROM SOURCES
@@ -143,29 +179,19 @@ export async function initializeMap(
             source: "all-data",
             "source-layer": "water",
             paint: {
-                "line-color": "#1e3a5f",
+                "line-color": activeSettings.value?.landColor
+                    ? darkenColor(activeSettings.value.landColor, 0.15)
+                    : "#1e3a5f",
                 "line-width": [
                     "interpolate",
                     ["linear"],
                     ["zoom"],
                     5,
-                    7,
+                    2.5,
                     10,
-                    4,
+                    5,
                 ],
-                "line-opacity": 0.6,
-            },
-        });
-
-        // WATER
-        map.addLayer({
-            id: "water",
-            type: "fill",
-            source: "all-data",
-            "source-layer": "water",
-            paint: {
-                "fill-color": "#24467b",
-                "fill-opacity": 0.6,
+                "line-opacity": 0.7,
             },
         });
 
@@ -180,7 +206,9 @@ export async function initializeMap(
                 "line-cap": ["step", ["zoom"], "butt", 8, "round"],
             },
             paint: {
-                "line-color": "#4a5f7a",
+                "line-color": activeSettings.value?.roadColor
+                    ? activeSettings.value.roadColor
+                    : "#4a5f7a",
                 "line-width": [
                     "interpolate",
                     ["linear"],
@@ -228,7 +256,6 @@ export async function initializeMap(
         );
 
         // PREFABS FOR SERVICE AREAS     ETC
-
         const color0 = blendWithBg(
             lightenColor(activeSettings.value.themeColor, 0.3),
             0.6,
@@ -258,9 +285,9 @@ export async function initializeMap(
                         "#3d546e",
                     ],
                 },
-                minzoom: 5,
+                minzoom: 8,
             },
-            "lines",
+            "roads",
         );
 
         // DISPLAYING VILLAGE NAMES
@@ -271,7 +298,9 @@ export async function initializeMap(
             "source-layer": "ets2villages",
             layout: {
                 "text-field": ["get", "name"],
-                "text-font": [activeSettings.value.fontFamily],
+                "text-font": [
+                    activeSettings.value.fontFamily || "Commissioner",
+                ],
                 "text-size": 13,
                 "text-anchor": "center",
                 "text-offset": [0, 0],
@@ -283,22 +312,6 @@ export async function initializeMap(
             },
             minzoom: 8.2,
         });
-
-        // DISPLAYING COUNTRY DELIMITATIONS
-        map.addLayer(
-            {
-                id: "country-borders",
-                type: "line",
-                source: "all-data",
-                "source-layer": "countries",
-                paint: {
-                    "line-color": "#3d546e",
-                    "line-width": 2,
-                    "line-opacity": 0.4,
-                },
-            },
-            "lines",
-        );
 
         // DISPLAYING STATE DELIMITATIONS
         map.addLayer(
@@ -331,9 +344,11 @@ export async function initializeMap(
                     ["linear"],
                     ["zoom"],
                     7,
-                    0.7,
+                    1,
                     10,
                     1.5,
+                    12,
+                    2,
                 ],
                 "icon-allow-overlap": false,
                 "symbol-sort-key": [
@@ -382,7 +397,9 @@ export async function initializeMap(
             filter: ["!=", ["get", "capital"], 2],
             layout: {
                 "text-field": ["get", "name"],
-                "text-font": [activeSettings.value.fontFamily],
+                "text-font": [
+                    activeSettings.value.fontFamily || "Commissioner",
+                ],
                 "text-size": 15,
                 "text-anchor": "bottom",
                 "text-offset": [0, -0.3],
@@ -409,7 +426,9 @@ export async function initializeMap(
             layout: {
                 "text-field": ["get", "name"],
                 "text-size": 18,
-                "text-font": [activeSettings.value.fontFamily],
+                "text-font": [
+                    activeSettings.value.fontFamily || "Commissioner",
+                ],
                 "text-anchor": "bottom",
                 "text-offset": [0, -0.3],
                 "text-allow-overlap": true,
@@ -418,7 +437,6 @@ export async function initializeMap(
             paint: {
                 "text-color": "#ffffff",
                 "text-halo-color": "#ffffff",
-                "text-halo-width": 0.5,
             },
 
             minzoom: 6,
@@ -434,7 +452,9 @@ export async function initializeMap(
             layout: {
                 "text-field": ["get", "name"],
                 "text-size": 20,
-                "text-font": [activeSettings.value.fontFamily],
+                "text-font": [
+                    activeSettings.value.fontFamily || "Commissioner",
+                ],
                 "text-anchor": "bottom",
                 "text-offset": [0, -0.3],
                 "text-allow-overlap": true,
@@ -444,7 +464,6 @@ export async function initializeMap(
                 "text-color": "#ffffff",
                 "text-halo-color": "#ffffff",
                 "text-halo-width": 0.5,
-                "text-opacity": 0.5,
             },
             minzoom: 5,
             maxzoom: 6,
