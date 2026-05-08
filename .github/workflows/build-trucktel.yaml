@@ -22,21 +22,11 @@ jobs:
             - name: Install Root Dependencies
               run: npm install
 
-            - name: Get latest TruckTel release information
-              id: trucktel
-              uses: pozetroninc/github-action-get-latest-release@master
-              with:
-                repository: jvanstraten/TruckTel
-
             - name: Download TruckTel
               run: |
                   mkdir -p gamebindir/plugins
-                  wget https://github.com/jvanstraten/TruckTel/releases/download/${{ steps.trucktel.outputs.release }}/trucktel.zip
+                  wget https://github.com/jvanstraten/TruckTel/releases/download/v0.1.1/trucktel.zip
                   7z x -ogamebindir/plugins trucktel.zip
-
-            - name: Remove TruckTel example apps
-              run: |
-                  rm -rf gamebindir/plugins/trucktel/*/
 
             - name: Build Nuxt Web App
               run: |

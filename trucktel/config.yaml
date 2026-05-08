@@ -1,6 +1,13 @@
 ---
 port: 30001
 
+title: TruckNav on TruckTel
+subtitle: The External GPS Companion for ETS2 & ATS
+text: |
+  A fork of TruckNav (original by Muntean Rares aka Byatis) to run
+  on TruckTel, so no installers or native apps are needed.
+link: "https://github.com/jvanstraten/TruckNav-Sim"
+
 content-types:
   - if: .*\.html?
     then: text/html; charset=utf-8
